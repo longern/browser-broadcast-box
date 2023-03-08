@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SDP Proxy</title>
+    <link rel="icon" href="data:;base64,iVBORw0KGgo=" />
+    <script type="module">
+      if (window.opener) {
+        window.opener.postMessage(
+          {
+            type: "event",
+            event: "load",
+          },
+          "*"
+        );
+
+        window.addEventListener("message", async (event) => {
+          if (event.source !== window.opener) return;
+
+          const { data } = event;
+          if (data.type === "request") {
+            const request = new Request(data.url, data);
+            const response = await Promise.race([
+              fetch(request),
+              new Promise((resolve, reject) =>
+                setTimeout(() => reject(new Error("timeout")), 10000)
+              ),
+            ]);
+            const { status, statusText, headers } = response;
+            event.source.postMessage(
+              {
+                type: "response",
+                status,
+                statusText,
+                headers: Object.fromEntries(headers.entries()),
+                body: await response.text(),
+              },
+              event.origin
+            );
+          }
+        });
+      }
+    </script>
+  </head>
+</html>
