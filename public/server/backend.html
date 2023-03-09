@@ -227,7 +227,7 @@
         const request = new Request(event.url, {
           method: event.method,
           headers: event.headers,
-          body: atob(event.body),
+          body: typeof event.body === "string" ? atob(event.body) : null,
         });
 
         let response;
