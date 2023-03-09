@@ -9,6 +9,10 @@ function websocketHandler(req: Request, connInfo): Response {
     return new Response("Not Allowed", { status: 403 });
   }
 
+  if (globalSocket !== null) {
+    return new Response("Already Connected", { status: 409 });
+  }
+
   const { socket, response } = Deno.upgradeWebSocket(req);
   socket.onopen = () => {
     const env: Record<string, string> = {};
@@ -29,7 +33,7 @@ function websocketHandler(req: Request, connInfo): Response {
     }
   };
   socket.onerror = (e) => console.log("socket errored:", e.message);
-  socket.onclose = () => console.log("socket closed");
+  socket.onclose = () => (globalSocket = null);
   globalSocket = socket;
   return response;
 }

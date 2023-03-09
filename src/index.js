@@ -1,11 +1,12 @@
-import React from "react";
+import React, { Suspense } from "react";
 import ReactDOM from "react-dom/client";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 
 import "./index.css";
 import IndexApp from "./IndexApp";
-import IngestApp from "./IngestApp";
 import EgressApp from "./EgressApp";
+
+const IngestApp = React.lazy(() => import("./IngestApp"));
 
 const darkTheme = createTheme({ palette: { mode: "dark" } });
 
@@ -27,7 +28,9 @@ function Root() {
     <React.StrictMode>
       <ThemeProvider theme={darkTheme}>
         {path === "#ingest" ? (
-          <IngestApp />
+          <Suspense>
+            <IngestApp />
+          </Suspense>
         ) : path === "#watch" ? (
           <EgressApp />
         ) : (
