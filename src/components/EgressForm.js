@@ -24,9 +24,6 @@ export default function IngestForm({ onWatchStream = () => {} }) {
         >
           Watch
         </Button>
-        <Button variant="contained" href="?ingest">
-          I'm a streamer
-        </Button>
       </Stack>
     </Box>
   );

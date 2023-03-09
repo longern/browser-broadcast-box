@@ -24,7 +24,6 @@ export default function Footer({
         bottom: 0,
         padding: 8,
         width: "100%",
-        boxSizing: "border-box",
       }}
     >
       <Stack direction="column">
@@ -35,7 +34,6 @@ export default function Footer({
             variant="outlined"
             fullWidth
             size="small"
-            uncontrolled
             onKeyDown={handleChatInput}
           />
           <IconButton onClick={() => onFullscreenClick()}>

@@ -28,12 +28,14 @@ export default function IngestForm({
 
   async function init() {
     if (!permissionGranted) {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-      stream.getTracks().forEach((track) => track.stop());
-      permissionGranted = true;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        stream.getTracks().forEach((track) => track.stop());
+        permissionGranted = true;
+      } catch (e) {}
     }
 
     const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
