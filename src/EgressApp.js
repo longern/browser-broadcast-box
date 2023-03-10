@@ -21,6 +21,15 @@ function EgressApp() {
     import("./WHEPClient").then((WHEPClientModule) => {
       const WHEPClient = WHEPClientModule.default;
       client.current = new WHEPClient(liveUrl);
+      client.current.peerConnection.addEventListener(
+        "connectionstatechange",
+        (ev) => {
+          if (ev.target.connectionState === "failed") {
+            window.alert("Cannot connect to the stream");
+            setOpen(true);
+          }
+        }
+      );
       setStream(client.current.stream);
     });
     setOpen(false);
@@ -30,6 +39,11 @@ function EgressApp() {
     client.current.dataChannel.send(
       JSON.stringify({ id: crypto.randomUUID(), message })
     );
+  }
+
+  async function handleFullscreenClick() {
+    const video = document.querySelector("video");
+    await video.requestFullscreen();
   }
 
   return (
@@ -42,7 +56,10 @@ function EgressApp() {
             </DialogContent>
           </Dialog>
           <VideoStream stream={stream} />
-          <EgressFooter onChatSend={handleChatSend} />
+          <EgressFooter
+            onChatSend={handleChatSend}
+            onFullscreenClick={handleFullscreenClick}
+          />
         </SetMessagesContext.Provider>
       </MessagesContext.Provider>
     </div>

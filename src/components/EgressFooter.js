@@ -28,7 +28,7 @@ export default function Footer({
     >
       <Stack direction="column">
         <Messages></Messages>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row">
           <TextField
             id="chat-input"
             variant="outlined"
