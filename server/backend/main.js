@@ -123,6 +123,17 @@ async function handleWhepEndpoint(req) {
     peerConnection.addTrack(track);
   }
 
+  peerConnection.addEventListener("icegatheringstatechange", (_ev) => {
+    if (peerConnection.iceGatheringState !== "complete") return;
+    peerConnection.getSenders().forEach((sender) => {
+      if (sender.track.kind === "video") {
+        const parameters = sender.getParameters();
+        parameters.encodings[0].maxBitrate = 5000000;
+        sender.setParameters(parameters);
+      }
+    });
+  });
+
   peerConnection.addEventListener("datachannel", (event) => {
     const dataChannel = event.channel;
     dataChannel.addEventListener("message", (event) => {

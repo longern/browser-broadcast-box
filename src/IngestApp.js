@@ -35,7 +35,12 @@ function IngestApp() {
           width: 1920,
           height: 1080,
         },
-        audio: true,
+        audio: {
+          channels: 2,
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false,
+        },
       });
       setStream(newStream);
     }
@@ -46,6 +51,22 @@ function IngestApp() {
     import("./WHIPClient").then((WHIPClientModule) => {
       const WHIPClient = WHIPClientModule.default;
       const client = new WHIPClient(liveUrl, stream);
+      setOpen(false);
+
+      client.peerConnection.addEventListener(
+        "icegatheringstatechange",
+        (_ev) => {
+          if (client.peerConnection.iceGatheringState !== "complete") return;
+          client.peerConnection.getSenders().forEach((sender) => {
+            if (sender.track.kind === "video") {
+              const parameters = sender.getParameters();
+              parameters.encodings[0].maxBitrate = 5000000;
+              sender.setParameters(parameters);
+            }
+          });
+        }
+      );
+
       client.dataChannel.addEventListener("message", (ev) => {
         const data = JSON.parse(ev.data);
         const { type, id, body } = data;
@@ -59,7 +80,6 @@ function IngestApp() {
         }
       });
     });
-    setOpen(false);
   }
 
   return (

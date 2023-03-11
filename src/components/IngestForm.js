@@ -56,8 +56,8 @@ export default function IngestForm({
   }, []);
 
   async function handleDeviceChange(e) {
-    setSelectedDevice(e.target.value);
     await onDeviceChange(e.target.value === "none" ? null : e.target.value);
+    setSelectedDevice(e.target.value);
     e.preventDefault();
   }
 
