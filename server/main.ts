@@ -1,4 +1,5 @@
 import { serve, ConnInfo } from "./deps.ts";
+import { serveDir } from "./deps.ts";
 
 let globalSocket: WebSocket | null = null;
 const handlerMap: Record<
@@ -59,12 +60,22 @@ async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
     return websocketHandler(req, connInfo);
   }
 
-  if (new URL(req.url).pathname === "/") {
-    const index = await Deno.readTextFile("./index.html");
-    return new Response(index, {
-      status: 200,
-      headers: { "content-type": "text/html" },
-    });
+  const pathname = new URL(req.url).pathname;
+  if (!pathname.startsWith("/api")) {
+    if (pathname === "/backend")
+      return new Response(null, {
+        status: 301,
+        headers: { Location: "/backend/" },
+      });
+
+    if (pathname.startsWith("/backend/")) {
+      const __dirname = new URL(".", import.meta.url).pathname;
+      return serveDir(req, {
+        fsRoot: `${__dirname}backend`,
+        urlRoot: "backend",
+      });
+    }
+    return serveDir(req, { fsRoot: "./build" });
   }
 
   if (globalSocket === null) {
