@@ -2,7 +2,9 @@ const environ = {};
 const resources = {};
 let stream = null;
 let streamResource = null;
+let streamThumbnail = null;
 const videoElement = document.createElement("video");
+videoElement.muted = true;
 let liveViewers = 0;
 
 const searchParams = new URLSearchParams(location.search);
@@ -52,6 +54,18 @@ async function handleWhipEndpoint(req) {
     streamResource = resourceId;
     // Force audio decoding otherwise the audio will be silent.
     videoElement.srcObject = stream;
+    // Generate a thumbnail for the stream.
+    const listener = videoElement.addEventListener("canplay", async () => {
+      videoElement.removeEventListener("canplay", listener);
+      await videoElement.play();
+
+      const canvas = document.createElement("canvas");
+      canvas.width = 320;
+      canvas.height = 180;
+      const context = canvas.getContext("2d");
+      context.drawImage(videoElement, 0, 0, 320, 180);
+      streamThumbnail = canvas.toDataURL();
+    });
   });
 
   peerConnection.addEventListener("datachannel", (event) => {
@@ -197,6 +211,8 @@ async function handleChannels(req) {
   if (streamResource) {
     channels.push({
       id: streamResource,
+      title: streamResource,
+      thumbnail: streamThumbnail,
     });
   }
 
