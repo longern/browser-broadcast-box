@@ -69,7 +69,7 @@ function IndexApp() {
             )}
           </Box>
         ) : (
-          <Container maxWidth="lg">
+          <Container maxWidth="lg" sx={{ paddingTop: 2 }}>
             <Grid container spacing={2}>
               {channels.map((channel) => (
                 <Grid item key={channel.id} xs={12} sm={6} md={4} lg={3}>
@@ -84,7 +84,11 @@ function IndexApp() {
                     }}
                   >
                     <Stack direction="column" spacing={1}>
-                      <img src={channel.thumbnail} alt={channel.title} />
+                      <img
+                        src={channel.thumbnail}
+                        alt={channel.title}
+                        style={{ aspectRatio: 640 / 360 }}
+                      />
                       <span>{channel.title}</span>
                     </Stack>
                   </Link>

@@ -1,11 +1,19 @@
-import { serve } from "./deps.ts";
+import { serve, ConnInfo } from "./deps.ts";
 
 let globalSocket: WebSocket | null = null;
-const handlerMap = new Map<string, Request>();
+const handlerMap: Record<
+  string,
+  (data: {
+    status: number;
+    headers: Record<string, string>;
+    body: string | null;
+  }) => void
+> = {};
 
 // WebSocket handler
-function websocketHandler(req: Request, connInfo): Response {
-  if (connInfo.remoteAddr.hostname !== "127.0.0.1") {
+function websocketHandler(req: Request, connInfo: ConnInfo): Response {
+  const remoteAddr = connInfo.remoteAddr as Deno.NetAddr;
+  if (remoteAddr.hostname !== "127.0.0.1") {
     return new Response("Not Allowed", { status: 403 });
   }
 
@@ -16,9 +24,10 @@ function websocketHandler(req: Request, connInfo): Response {
   const { socket, response } = Deno.upgradeWebSocket(req);
   socket.onopen = () => {
     const env: Record<string, string> = {};
-    if (Deno.env.get("PUBLIC_IP")) env.PUBLIC_IP = Deno.env.get("PUBLIC_IP");
+    const envPublicIp = Deno.env.get("PUBLIC_IP");
+    if (envPublicIp) env.PUBLIC_IP = envPublicIp;
     socket.send(JSON.stringify({ type: "env", items: env }));
-    const remoteSocket = `${connInfo.remoteAddr.hostname}:${connInfo.remoteAddr.port}`;
+    const remoteSocket = `${remoteAddr.hostname}:${remoteAddr.port}`;
     console.log(`Backend socket ${remoteSocket} connected`);
   };
   socket.onmessage = (e) => {
@@ -32,13 +41,14 @@ function websocketHandler(req: Request, connInfo): Response {
       console.log(e);
     }
   };
-  socket.onerror = (e) => console.log("socket errored:", e.message);
+  socket.onerror = (e) =>
+    console.log("socket errored:", (<ErrorEvent>e).message);
   socket.onclose = () => (globalSocket = null);
   globalSocket = socket;
   return response;
 }
 
-async function handler(req: Request, connInfo): Promise<Response> {
+async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
   // Handle OPTIONS request
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204 });
@@ -106,14 +116,16 @@ async function detectPublicIp() {
     const publicIp = await response.text();
     console.log("Public IP:", publicIp);
     return publicIp;
-  } catch (e) {
+  } catch (_e) {
     console.log("No public IP found");
     return null;
   }
 }
 
-function corsHandler(handler: (req: Request, connInfo) => Promise<Response>) {
-  return async (req: Request, connInfo) => {
+function corsHandler(
+  handler: (req: Request, connInfo: ConnInfo) => Promise<Response>
+) {
+  return async (req: Request, connInfo: ConnInfo) => {
     const response = await handler(req, connInfo);
     if (response.status === 101) return response;
     const newResponse = new Response(response.body, response);
@@ -137,7 +149,7 @@ if (Deno.env.get("HEADLESS_CHROMIUM")) {
       "--headless",
       "--no-sandbox",
       "--remote-debugging-port=0",
-      Deno.env.get("HEADLESS_CHROMIUM"),
+      Deno.env.get("HEADLESS_CHROMIUM") || "",
     ],
   });
 }
