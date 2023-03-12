@@ -71,10 +71,12 @@ function IngestApp() {
         const data = JSON.parse(ev.data);
         const { type, id, body } = data;
         if (type === "message") {
-          const newMessages = [...messages];
-          newMessages.push({ id, content: body });
-          if (newMessages.length > 1000) newMessages.shift();
-          setMessages(newMessages);
+          setMessages((messages) => {
+            const newMessages = [...messages];
+            newMessages.push({ id, content: body });
+            if (newMessages.length > 1000) newMessages.shift();
+            return newMessages;
+          });
         } else if (data.type === "views") {
           setViews(+body);
         }

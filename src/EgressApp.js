@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 import { Dialog, DialogContent } from "@mui/material";
 import EgressFooter from "./components/EgressFooter";
@@ -16,10 +16,20 @@ function EgressApp() {
 
   const client = useRef(null);
 
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const channel = searchParams.get("c");
+    if (channel) handleWatchStream({ liveUrl: "/api/whep" });
+    return () => {
+      if (client.current) client.current.peerConnection.close();
+    };
+  }, []);
+
   async function handleWatchStream(options) {
     const { liveUrl } = options;
     import("./WHEPClient").then((WHEPClientModule) => {
       const WHEPClient = WHEPClientModule.default;
+      if (client.current) client.current.peerConnection.close();
       client.current = new WHEPClient(liveUrl);
       client.current.peerConnection.addEventListener(
         "connectionstatechange",
