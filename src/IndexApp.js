@@ -40,7 +40,7 @@ function IndexApp() {
   return (
     <div className="App">
       <AppBar position="static">
-        <Toolbar variant="dense">
+        <Toolbar variant="dense" disableGutters sx={{ placeItems: "stretch" }}>
           <Box sx={{ flexGrow: 1 }} />
           <Button href="#ingest">Live</Button>
         </Toolbar>
@@ -69,12 +69,13 @@ function IndexApp() {
             )}
           </Box>
         ) : (
-          <Container maxWidth="lg" sx={{ paddingTop: 2 }}>
+          <Container maxWidth="lg" sx={{ p: { xs: 0 }, pt: { sm: 2 } }}>
             <Grid container spacing={2}>
               {channels.map((channel) => (
                 <Grid item key={channel.id} xs={12} sm={6} md={4} lg={3}>
                   <Link
                     href={`?c=${channel.id}#watch`}
+                    color="inherit"
                     underline="none"
                     onClick={(e) => {
                       const url = e.currentTarget.href;
@@ -87,9 +88,19 @@ function IndexApp() {
                       <img
                         src={channel.thumbnail}
                         alt={channel.title}
-                        style={{ aspectRatio: 640 / 360 }}
+                        style={{ aspectRatio: 640 / 360, objectFit: "contain" }}
                       />
-                      <span>{channel.title}</span>
+                      <Box
+                        component={"span"}
+                        sx={{
+                          px: 1,
+                          whiteSpace: "nowrap",
+                          textOverflow: "ellipsis",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {channel.title}
+                      </Box>
                     </Stack>
                   </Link>
                 </Grid>

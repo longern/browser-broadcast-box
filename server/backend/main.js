@@ -60,10 +60,16 @@ async function handleWhipEndpoint(req) {
       await videoElement.play();
 
       const canvas = document.createElement("canvas");
-      canvas.width = 320;
-      canvas.height = 180;
       const context = canvas.getContext("2d");
-      context.drawImage(videoElement, 0, 0, 320, 180);
+      if (videoElement.videoWidth > videoElement.videoHeight) {
+        canvas.width = 320;
+        canvas.height = 180;
+        context.drawImage(videoElement, 0, 0, 320, 180);
+      } else {
+        canvas.width = 180;
+        canvas.height = 320;
+        context.drawImage(videoElement, 0, 0, 180, 320);
+      }
       streamThumbnail = canvas.toDataURL();
     });
   });
