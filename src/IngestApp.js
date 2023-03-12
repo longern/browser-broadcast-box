@@ -26,7 +26,12 @@ function IngestApp() {
     if (deviceId === "screen") {
       const newStream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
-        audio: true,
+        audio: {
+          channels: 2,
+          autoGainControl: false,
+          echoCancellation: false,
+          noiseSuppression: false,
+        },
       });
       setStream(newStream);
     } else {
