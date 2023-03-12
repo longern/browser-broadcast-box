@@ -8,6 +8,7 @@ import {
   MessagesContext,
   SetMessagesContext,
 } from "./contexts/MessagesContext";
+import { Box } from "@mui/system";
 
 function IngestApp() {
   const [open, setOpen] = useState(true);
@@ -97,6 +98,22 @@ function IngestApp() {
             </DialogContent>
           </Dialog>
           <VideoStream stream={stream} muted />
+          <Box
+            sx={{
+              position: "absolute",
+              top: 8,
+              right: 8,
+              width: 32,
+              height: 32,
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: 9999,
+              backgroundColor: "rgba(127, 127, 127, 0.5)",
+            }}
+          >
+            {views}
+          </Box>
           <IngestFooter />
         </SetMessagesContext.Provider>
       </MessagesContext.Provider>

@@ -34,6 +34,7 @@ export default function Footer({
             variant="outlined"
             fullWidth
             size="small"
+            autoComplete="off"
             onKeyDown={handleChatInput}
           />
           <IconButton onClick={() => onFullscreenClick()}>
