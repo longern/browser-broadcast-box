@@ -1,3 +1,4 @@
+import { preferCodec } from "./codecs.js";
 import negotiateConnectionWithClientOffer from "./negotiateConnectionWithClientOffer.js";
 /**
  * Example implementation of a client that uses WHIP to broadcast video over WebRTC
@@ -19,6 +20,17 @@ export default class WHIPClient {
 
     mediaStream.getTracks().forEach((track) => {
       this.peerConnection.addTrack(track, mediaStream);
+    });
+
+    const transceivers = this.peerConnection.getTransceivers();
+    transceivers.forEach((transceiver) => {
+      const kind = transceiver.sender.track.kind;
+      let sendCodecs = RTCRtpSender.getCapabilities(kind).codecs;
+
+      if (kind === "video") {
+        sendCodecs = preferCodec(sendCodecs, "video/VP9");
+        transceiver.setCodecPreferences(sendCodecs);
+      }
     });
 
     this.dataChannel = this.peerConnection.createDataChannel("whip");

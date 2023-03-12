@@ -1,3 +1,4 @@
+import { preferCodec } from "./codecs.js";
 import negotiateConnectionWithClientOffer from "./negotiateConnectionWithClientOffer.js";
 /**
  * Example implementation of a client that uses WHEP to playback video over WebRTC
@@ -22,12 +23,15 @@ export default class WHEPClient {
       bundlePolicy: "max-bundle",
     });
     /** https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/addTransceiver */
-    this.peerConnection.addTransceiver("video", {
+    const videoTransceiver = this.peerConnection.addTransceiver("video", {
       direction: "recvonly",
     });
     this.peerConnection.addTransceiver("audio", {
       direction: "recvonly",
     });
+    let recvCodecs = RTCRtpReceiver.getCapabilities("video").codecs;
+    recvCodecs = preferCodec(recvCodecs, "video/VP9");
+    videoTransceiver.setCodecPreferences(recvCodecs);
 
     this.dataChannel = this.peerConnection.createDataChannel("whep");
     this.dataChannel.addEventListener("open", () => {
