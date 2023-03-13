@@ -97,6 +97,19 @@ async function handleWhipEndpoint(req) {
     );
   });
 
+  const csListener = peerConnection.addEventListener(
+    "connectionstatechange",
+    (_ev) => {
+      if (["failed", "closed"].includes(peerConnection.connectionState)) {
+        peerConnection.removeEventListener("connectionstatechange", csListener);
+        delete resources[resourceId];
+        channel.resource = null;
+        channel.title = null;
+        channel.thumbnail = null;
+      }
+    }
+  );
+
   peerConnection.setRemoteDescription({ type: "offer", sdp: offer });
   let answer = await peerConnection.createAnswer();
   peerConnection.setLocalDescription(answer);
@@ -172,13 +185,17 @@ async function handleWhepEndpoint(req) {
     resources[resourceId].dataChannel = dataChannel;
   });
 
-  peerConnection.addEventListener("connectionstatechange", (_ev) => {
-    if (["failed", "closed"].includes(peerConnection.connectionState)) {
-      delete resources[resourceId];
-      liveViewers--;
-      sendLiveViewers(channel.resource);
+  const csListener = peerConnection.addEventListener(
+    "connectionstatechange",
+    (_ev) => {
+      if (["failed", "closed"].includes(peerConnection.connectionState)) {
+        peerConnection.removeEventListener("connectionstatechange", csListener);
+        delete resources[resourceId];
+        liveViewers--;
+        sendLiveViewers(channel.resource);
+      }
     }
-  });
+  );
 
   let answer = await peerConnection.createAnswer();
   peerConnection.setLocalDescription(answer);
