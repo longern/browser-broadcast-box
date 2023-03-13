@@ -64,7 +64,7 @@ export default function IngestForm({
   }
 
   function validate() {
-    return liveUrl !== "" && selectedDevice !== "none";
+    return liveUrl !== "" && title && selectedDevice !== "none";
   }
 
   return (

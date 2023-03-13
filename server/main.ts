@@ -90,15 +90,14 @@ async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
       method: req.method,
       headers: Object.fromEntries(req.headers),
       url: req.url,
-      body: req.body ? btoa(await req.text()) : null,
+      body: req.body ? await req.text() : null,
     })
   );
 
   const response = await new Promise<Response>((resolve) => {
     handlerMap[requestID] = (data) => {
       const { status, headers, body } = data;
-      const responseBody = body ? atob(body) : null;
-      resolve(new Response(responseBody, { status, headers }));
+      resolve(new Response(body, { status, headers }));
     };
     setTimeout(() => {
       resolve(new Response("Request Timeout", { status: 408 }));

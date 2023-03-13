@@ -235,7 +235,7 @@ async function handleChannels(req) {
   if (channel.resource) {
     channels.push({
       id: channel.resource,
-      title: channel.title || channel.resource,
+      title: channel.title || "Untitled",
       thumbnail: channel.thumbnail,
     });
   }
@@ -278,7 +278,7 @@ ws.onmessage = async (ev) => {
   const request = new Request(event.url, {
     method: event.method,
     headers: event.headers,
-    body: typeof event.body === "string" ? atob(event.body) : null,
+    body: event.body,
   });
 
   let response;
@@ -294,7 +294,7 @@ ws.onmessage = async (ev) => {
       id: requestId,
       status: response.status,
       headers: Object.fromEntries(response.headers),
-      body: btoa(await response.text()),
+      body: await response.text(),
     })
   );
 };
