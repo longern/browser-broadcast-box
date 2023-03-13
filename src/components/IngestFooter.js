@@ -1,6 +1,5 @@
 import SettingsIcon from "@mui/icons-material/Settings";
-import StopIcon from "@mui/icons-material/Stop";
-import { Dialog, DialogContent, IconButton } from "@mui/material";
+import { Button, Dialog, DialogContent, IconButton } from "@mui/material";
 import React, { useState } from "react";
 
 import Messages from "./Messages";
@@ -15,9 +14,9 @@ export default function Footer({ onStopClick = () => {} }) {
     >
       <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)}>
         <DialogContent>
-          <IconButton onClick={onStopClick}>
-            <StopIcon />
-          </IconButton>
+          <Button variant="contained" onClick={onStopClick} color="error">
+            Stop
+          </Button>
         </DialogContent>
       </Dialog>
       <Messages></Messages>

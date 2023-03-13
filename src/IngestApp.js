@@ -53,7 +53,7 @@ function IngestApp() {
   }
 
   async function handleStartStream(options) {
-    const { liveUrl } = options;
+    const { liveUrl, title } = options;
     import("./WHIPClient").then((WHIPClientModule) => {
       const WHIPClient = WHIPClientModule.default;
       const client = new WHIPClient(liveUrl, stream);
@@ -87,7 +87,24 @@ function IngestApp() {
           setViews(+body);
         }
       });
+
+      client.dataChannel.addEventListener("open", () => {
+        client.dataChannel.send(
+          JSON.stringify({
+            type: "meta",
+            id: crypto.randomUUID(),
+            body: { title },
+          })
+        );
+      });
     });
+  }
+
+  async function handleStopStream() {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
+    setOpen(true);
   }
 
   return (
@@ -119,7 +136,7 @@ function IngestApp() {
           >
             {views}
           </Box>
-          <IngestFooter />
+          <IngestFooter onStopClick={handleStopStream} />
         </SetMessagesContext.Provider>
       </MessagesContext.Provider>
     </div>

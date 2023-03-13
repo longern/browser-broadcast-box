@@ -22,7 +22,6 @@ function IndexApp() {
     (async () => {
       try {
         const channelResponse = await fetch("/api/channels");
-        setLoading(false);
         if (channelResponse.status >= 299) {
           setListChannelsNotSupported(true);
           return;
@@ -30,6 +29,7 @@ function IndexApp() {
 
         const channelList = (await channelResponse.json()).channels;
         setChannels(channelList);
+        setLoading(false);
       } catch (e) {
         setLoading(false);
         setListChannelsNotSupported(true);

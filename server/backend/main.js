@@ -1,8 +1,11 @@
 const environ = {};
 const resources = {};
 let stream = null;
-let streamResource = null;
-let streamThumbnail = null;
+let channel = {
+  resource: null,
+  title: null,
+  thumbnail: null,
+};
 const videoElement = document.createElement("video");
 videoElement.muted = true;
 let liveViewers = 0;
@@ -51,7 +54,7 @@ async function handleWhipEndpoint(req) {
 
   peerConnection.addEventListener("track", (event) => {
     stream = event.streams[0];
-    streamResource = resourceId;
+    channel.resource = resourceId;
     // Force audio decoding otherwise the audio will be silent.
     videoElement.srcObject = stream;
     // Generate a thumbnail for the stream.
@@ -70,7 +73,7 @@ async function handleWhipEndpoint(req) {
         canvas.height = 320;
         context.drawImage(videoElement, 0, 0, 180, 320);
       }
-      streamThumbnail = canvas.toDataURL();
+      channel.thumbnail = canvas.toDataURL();
     });
   });
 
@@ -79,6 +82,10 @@ async function handleWhipEndpoint(req) {
     dataChannel.addEventListener("message", (event) => {
       const message = event.data;
       console.log(`Received message from ${resourceId}:`, message);
+      const { type, body } = JSON.parse(message);
+      if (type === "meta") {
+        channel.title = body.title;
+      }
     });
     resources[resourceId].dataChannel = dataChannel;
     dataChannel.send(
@@ -132,7 +139,7 @@ async function handleWhepEndpoint(req) {
   peerConnection.addEventListener("icegatheringstatechange", (_ev) => {
     if (peerConnection.iceGatheringState !== "complete") return;
     peerConnection.getSenders().forEach((sender) => {
-      if (sender.track.kind === "video") {
+      if (sender.track?.kind === "video") {
         const parameters = sender.getParameters();
         parameters.encodings[0].maxBitrate = 5000000;
         sender.setParameters(parameters);
@@ -154,7 +161,7 @@ async function handleWhepEndpoint(req) {
       }
 
       console.log(`Received message from ${resourceId}:`, message);
-      resources[streamResource].dataChannel.send(
+      resources[channel.resource].dataChannel.send(
         JSON.stringify({
           type: "message",
           id,
@@ -169,7 +176,7 @@ async function handleWhepEndpoint(req) {
     if (["failed", "closed"].includes(peerConnection.connectionState)) {
       delete resources[resourceId];
       liveViewers--;
-      sendLiveViewers(streamResource);
+      sendLiveViewers(channel.resource);
     }
   });
 
@@ -183,7 +190,7 @@ async function handleWhepEndpoint(req) {
   const resourceId = crypto.randomUUID();
   resources[resourceId] = { peerConnection, dataChannel: null };
   liveViewers++;
-  sendLiveViewers(streamResource);
+  sendLiveViewers(channel.resource);
 
   const origin = new URL(req.url).origin;
   return new Response(answer.sdp, {
@@ -225,11 +232,11 @@ async function handleChannels(req) {
   }
 
   const channels = [];
-  if (streamResource) {
+  if (channel.resource) {
     channels.push({
-      id: streamResource,
-      title: streamResource,
-      thumbnail: streamThumbnail,
+      id: channel.resource,
+      title: channel.title || channel.resource,
+      thumbnail: channel.thumbnail,
     });
   }
 

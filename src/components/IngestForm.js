@@ -9,6 +9,7 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import React, { useEffect, useState } from "react";
 
@@ -23,6 +24,7 @@ export default function IngestForm({
   onStartStream = () => {},
 }) {
   const [liveUrl, setLiveUrl] = useState("");
+  const [title, setTitle] = useState("Welcome!");
   const [devices, setDevices] = useState([]);
   const [selectedDevice, setSelectedDevice] = useState("none");
 
@@ -70,9 +72,39 @@ export default function IngestForm({
       <Stack direction="column" spacing={3}>
         <TextField
           id="live-url"
+          value={liveUrl}
           label="Live URL"
           size="small"
+          required
           onChange={(e) => setLiveUrl(e.target.value)}
+          InputProps={{
+            endAdornment: (
+              <IconButton
+                sx={{ visibility: liveUrl ? "visible" : "hidden" }}
+                onClick={() => setLiveUrl("")}
+              >
+                <CloseIcon />
+              </IconButton>
+            ),
+          }}
+        ></TextField>
+        <TextField
+          id="title"
+          value={title}
+          label="Title"
+          size="small"
+          required
+          onChange={(e) => setTitle(e.target.value)}
+          InputProps={{
+            endAdornment: (
+              <IconButton
+                sx={{ visibility: title ? "visible" : "hidden" }}
+                onClick={() => setTitle("")}
+              >
+                <CloseIcon />
+              </IconButton>
+            ),
+          }}
         ></TextField>
         <Stack direction="row" spacing={1}>
           <FormControl fullWidth>
@@ -101,7 +133,7 @@ export default function IngestForm({
         <Button
           variant="contained"
           disabled={!validate()}
-          onClick={() => onStartStream({ liveUrl: liveUrl })}
+          onClick={() => onStartStream({ liveUrl: liveUrl, title: title })}
         >
           Start
         </Button>
