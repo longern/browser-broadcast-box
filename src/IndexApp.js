@@ -18,23 +18,26 @@ function IndexApp() {
   const [listChannelsNotSupported, setListChannelsNotSupported] =
     useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const channelResponse = await fetch("/api/channels");
-        if (channelResponse.status >= 299) {
-          setListChannelsNotSupported(true);
-          return;
-        }
-
-        const channelList = (await channelResponse.json()).channels;
-        setChannels(channelList);
-      } catch (e) {
+  async function fetchChannels() {
+    setLoading(true);
+    try {
+      const channelResponse = await fetch("/api/channels");
+      if (channelResponse.status >= 299) {
         setListChannelsNotSupported(true);
-      } finally {
-        setLoading(false);
+        return;
       }
-    })();
+
+      const channelList = (await channelResponse.json()).channels;
+      setChannels(channelList);
+    } catch (e) {
+      setListChannelsNotSupported(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchChannels();
   }, []);
 
   return (
@@ -65,7 +68,12 @@ function IndexApp() {
                 </Button>
               </Stack>
             ) : (
-              <span>No channels found</span>
+              <Stack direction="column" spacing={3} alignItems="center">
+                <span>No channels found</span>
+                <Button variant="contained" onClick={() => fetchChannels()}>
+                  Retry
+                </Button>
+              </Stack>
             )}
           </Box>
         ) : (
