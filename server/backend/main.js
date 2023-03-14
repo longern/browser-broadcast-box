@@ -5,10 +5,10 @@ let channel = {
   resource: null,
   title: null,
   thumbnail: null,
+  liveViewers: 0,
 };
 const videoElement = document.createElement("video");
 videoElement.muted = true;
-let liveViewers = 0;
 
 const searchParams = new URLSearchParams(location.search);
 const port = searchParams.get("port") || 11733;
@@ -33,7 +33,7 @@ function sendLiveViewers(resourceId) {
   dataChannel.send(
     JSON.stringify({
       type: "views",
-      body: liveViewers,
+      body: channel.liveViewers,
     })
   );
 }
@@ -106,6 +106,7 @@ async function handleWhipEndpoint(req) {
         channel.resource = null;
         channel.title = null;
         channel.thumbnail = null;
+        channel.liveViewers = 0;
       }
     }
   );
@@ -174,6 +175,7 @@ async function handleWhepEndpoint(req) {
       }
 
       console.log(`Received message from ${resourceId}:`, message);
+      if (!resources[channel.resource]) return;
       resources[channel.resource].dataChannel.send(
         JSON.stringify({
           type: "message",
@@ -191,7 +193,8 @@ async function handleWhepEndpoint(req) {
       if (["failed", "closed"].includes(peerConnection.connectionState)) {
         peerConnection.removeEventListener("connectionstatechange", csListener);
         delete resources[resourceId];
-        liveViewers--;
+        if (!channel.resource) return;
+        channel.liveViewers--;
         sendLiveViewers(channel.resource);
       }
     }
@@ -206,7 +209,7 @@ async function handleWhepEndpoint(req) {
 
   const resourceId = crypto.randomUUID();
   resources[resourceId] = { peerConnection, dataChannel: null };
-  liveViewers++;
+  channel.liveViewers++;
   sendLiveViewers(channel.resource);
 
   const origin = new URL(req.url).origin;

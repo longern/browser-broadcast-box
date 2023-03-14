@@ -33,6 +33,7 @@ function IngestApp() {
           noiseSuppression: false,
         },
       });
+      newStream.getVideoTracks()[0].contentHint = "motion";
       setStream(newStream);
     } else {
       const newStream = await navigator.mediaDevices.getUserMedia({
