@@ -29,10 +29,10 @@ function IndexApp() {
 
         const channelList = (await channelResponse.json()).channels;
         setChannels(channelList);
-        setLoading(false);
       } catch (e) {
-        setLoading(false);
         setListChannelsNotSupported(true);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);

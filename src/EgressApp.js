@@ -46,9 +46,9 @@ function EgressApp() {
   }
 
   async function handleChatSend(message) {
-    client.current.dataChannel.send(
-      JSON.stringify({ id: crypto.randomUUID(), message })
-    );
+    const newMessage = { id: crypto.randomUUID(), content: message };
+    client.current.dataChannel.send(JSON.stringify(newMessage));
+    setMessages((messages) => [newMessage, ...messages]);
   }
 
   async function handleFullscreenClick() {

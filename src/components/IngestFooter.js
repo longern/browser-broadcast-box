@@ -10,7 +10,7 @@ export default function Footer({ onStopClick = () => {} }) {
   return (
     <div
       className="footer"
-      style={{ position: "absolute", bottom: 0, padding: 8 }}
+      style={{ position: "absolute", bottom: 0, padding: 8, width: "100%" }}
     >
       <Dialog open={settingsOpen} onClose={() => setSettingsOpen(false)}>
         <DialogContent>

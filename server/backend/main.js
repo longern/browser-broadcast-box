@@ -167,7 +167,7 @@ async function handleWhepEndpoint(req) {
       try {
         const data = JSON.parse(event.data);
         id = data.id;
-        message = data.message;
+        message = data.content;
       } catch (_e) {
         console.error("Failed to parse message:", event.data);
         return;

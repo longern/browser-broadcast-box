@@ -78,9 +78,8 @@ function IngestApp() {
         const { type, id, body } = data;
         if (type === "message") {
           setMessages((messages) => {
-            const newMessages = [...messages];
-            newMessages.push({ id, content: body });
-            if (newMessages.length > 1000) newMessages.shift();
+            const newMessages = [{ id, content: body }, ...messages];
+            if (newMessages.length > 1000) newMessages.pop();
             return newMessages;
           });
         } else if (data.type === "views") {
