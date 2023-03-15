@@ -25,7 +25,11 @@ function IngestApp() {
 
     if (deviceId === "screen") {
       const newStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: {
+          width: 1920,
+          height: 1080,
+          displaySurface: "monitor",
+        },
         audio: {
           channels: 2,
           autoGainControl: false,
