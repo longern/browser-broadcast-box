@@ -1,5 +1,5 @@
 import { serve, ConnInfo } from "./deps.ts";
-import { serveDir } from "./deps.ts";
+import { serveDir, serveFile } from "./deps.ts";
 
 let globalSocket: WebSocket | null = null;
 const handlerMap: Record<
@@ -60,6 +60,7 @@ async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
     return websocketHandler(req, connInfo);
   }
 
+  const __dirname = new URL(".", import.meta.url).pathname;
   const pathname = new URL(req.url).pathname;
   if (!pathname.startsWith("/api")) {
     if (pathname === "/backend")
@@ -69,13 +70,20 @@ async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
       });
 
     if (pathname.startsWith("/backend/")) {
-      const __dirname = new URL(".", import.meta.url).pathname;
       return serveDir(req, {
         fsRoot: `${__dirname}backend`,
         urlRoot: "backend",
       });
     }
     return serveDir(req, { fsRoot: "./build" });
+  }
+
+  if (
+    req.method === "GET" &&
+    pathname === "/api/whip" &&
+    req.headers.get("accept")?.startsWith("text/html")
+  ) {
+    return serveFile(req, `${__dirname}proxy.html`);
   }
 
   if (globalSocket === null) {

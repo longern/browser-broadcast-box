@@ -78,7 +78,7 @@ async function postSDPOffer(endpoint, data) {
     ) {
       const response = await new Promise((resolve, reject) => {
         // Create popup window
-        window.popup = window.open(url.origin, "_blank");
+        window.popup = window.open(url, "_blank");
 
         const intervalId = setInterval(() => {
           if (window.popup.closed) reject(new Error("Popup closed"));
