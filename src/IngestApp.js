@@ -7,7 +7,7 @@ import VideoStream from "./components/VideoStream";
 import {
   MessagesContext,
   SetMessagesContext,
-} from "./contexts/MessagesContext";
+} from "./contexts/MessagesContext.ts";
 import { Box } from "@mui/system";
 
 function IngestApp() {

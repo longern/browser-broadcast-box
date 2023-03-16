@@ -1,6 +1,13 @@
+import React from "react";
 import { Box, Grid, Link, Stack } from "@mui/material";
 
-export default function ChannelGrid({ channels }) {
+export type Channel = {
+  id: string;
+  title: string;
+  thumbnail: string;
+};
+
+export default function ChannelGrid({ channels }: { channels: Channel[] }) {
   return (
     <Grid container spacing={2}>
       {channels.map((channel) => (
@@ -9,7 +16,7 @@ export default function ChannelGrid({ channels }) {
             href={`?c=${channel.id}#watch`}
             color="inherit"
             underline="none"
-            onClick={(e) => {
+            onClick={(e: React.MouseEvent<HTMLAnchorElement>) => {
               const url = e.currentTarget.href;
               window.history.pushState({}, "", url);
               window.dispatchEvent(new Event("hashchange"));

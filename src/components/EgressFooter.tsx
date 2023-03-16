@@ -7,12 +7,15 @@ import Messages from "./Messages";
 export default function Footer({
   onChatSend = () => {},
   onFullscreenClick = () => {},
+}: {
+  onChatSend?: (message: string) => void;
+  onFullscreenClick?: () => void;
 }) {
-  function handleChatInput(e) {
+  function handleChatInput(e: React.KeyboardEvent<HTMLInputElement>) {
     if (e.key === "Enter") {
-      if (!e.target.value || e.target.value.length > 100) return;
-      onChatSend(e.target.value);
-      e.target.value = "";
+      if (!e.currentTarget.value || e.currentTarget.value.length > 100) return;
+      onChatSend(e.currentTarget.value);
+      e.currentTarget.value = "";
     }
   }
 

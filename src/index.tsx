@@ -10,7 +10,7 @@ const IngestApp = React.lazy(() => import("./IngestApp"));
 
 const darkTheme = createTheme({ palette: { mode: "dark" } });
 
-const root = ReactDOM.createRoot(document.getElementById("root"));
+const root = ReactDOM.createRoot(document.getElementById("root")!);
 
 function Root() {
   const hash = typeof window !== "undefined" ? window.location.hash : "";

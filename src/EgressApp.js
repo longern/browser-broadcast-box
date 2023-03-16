@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 
 import { Dialog, DialogContent } from "@mui/material";
-import EgressFooter from "./components/EgressFooter";
+import EgressFooter from "./components/EgressFooter.tsx";
 import EgressForm from "./components/EgressForm";
 import VideoStream from "./components/VideoStream";
 import {
   MessagesContext,
   SetMessagesContext,
-} from "./contexts/MessagesContext";
+} from "./contexts/MessagesContext.ts";
 
 function EgressApp() {
   const [open, setOpen] = useState(true);
