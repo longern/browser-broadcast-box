@@ -7,6 +7,7 @@ import IndexApp from "./IndexApp";
 import EgressApp from "./EgressApp";
 
 const IngestApp = React.lazy(() => import("./IngestApp"));
+const IngestDesktopApp = React.lazy(() => import("./IngestDesktop/App"));
 
 const darkTheme = createTheme({ palette: { mode: "dark" } });
 
@@ -30,6 +31,10 @@ function Root() {
         {path === "#ingest" ? (
           <Suspense>
             <IngestApp />
+          </Suspense>
+        ) : path === "#studio" ? (
+          <Suspense>
+            <IngestDesktopApp />
           </Suspense>
         ) : path === "#watch" ? (
           <EgressApp />
