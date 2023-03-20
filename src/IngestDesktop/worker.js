@@ -6,7 +6,7 @@ let streams = {};
 let streamCurrentFrame = {};
 
 /** @param {WritableStream<VideoFrame>} output */
-async function startRendering(output, frameRate) {
+function startRendering(output, frameRate) {
   canvas = output;
   ctx = canvas.getContext("2d");
 
