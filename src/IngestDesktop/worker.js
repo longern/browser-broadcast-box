@@ -20,8 +20,7 @@ async function startRendering(output, frameRate) {
         case "text":
           ctx.font = `${source.fontSize}px sans-serif`;
           ctx.fillStyle = source.color;
-          const magicBias = source.fontSize / 8;
-          ctx.fillText(source.content, source.x, source.y + magicBias);
+          ctx.fillText(source.content, source.x, source.y);
           break;
         case "image":
           if (source.src in streams) {

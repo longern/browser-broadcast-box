@@ -91,6 +91,7 @@ export default function DraggableResizeable({
         width: width ? width + resizeOffsetX : undefined,
         height: height ? height + resizeOffsetY : undefined,
         cursor: dragging ? "grabbing" : "grab",
+        touchAction: "none",
         ...style,
       }}
       onPointerDown={handlePointerDown}

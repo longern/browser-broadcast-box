@@ -10,6 +10,7 @@ import Preview from "./Preview";
 import ScenesCard from "./ScenesCard";
 import SettingsDialog from "./SettingsDialog";
 import SourcesCard from "./SourcesCard";
+import VolumeVisualizer from "./VolumeVisualizer";
 
 export default function IngestDesktopApp() {
   const menuItems = [
@@ -55,6 +56,8 @@ export default function IngestDesktopApp() {
 
   const worker = React.useRef(null);
   const composedTrack = React.useRef(null);
+  const audioContext = React.useRef(null);
+  const audioDestination = React.useRef(null);
   const whipClient = React.useRef(null);
 
   React.useEffect(() => {
@@ -86,33 +89,18 @@ export default function IngestDesktopApp() {
     return () => {
       worker.current.terminate();
       composedTrack.current = null;
+      if (audioContext.current) audioContext.current.close();
     };
   }, []);
 
   React.useEffect(() => {
-    const baseStream = (() => {
-      for (const source of sources) {
-        if (source.id in mediaInputs) {
-          const stream = mediaInputs[source.id];
-          if (stream.getVideoTracks().length > 0) {
-            return stream;
-          }
-        }
-      }
-      return null;
-    })();
-    if (!baseStream) return;
-
-    if (!window.MediaStreamTrackProcessor) {
-      setStream(baseStream);
-      return;
-    }
-
     worker.current.postMessage({ sources });
 
-    setStream(
-      new MediaStream([composedTrack.current, ...baseStream.getAudioTracks()])
-    );
+    const tracks = [composedTrack.current];
+    if (audioDestination.current) {
+      tracks.push(audioDestination.current.stream.getAudioTracks()[0]);
+    }
+    setStream(new MediaStream(tracks));
   }, [sources]);
 
   function handleAddSource(source) {
@@ -130,6 +118,17 @@ export default function IngestDesktopApp() {
           { streams: { [rest.id]: processor.readable } },
           [processor.readable]
         );
+      }
+
+      if (stream.getAudioTracks().length > 0) {
+        if (!audioContext.current) {
+          audioContext.current = new AudioContext();
+          audioDestination.current =
+            audioContext.current.createMediaStreamDestination();
+        }
+        const audioSource =
+          audioContext.current.createMediaStreamSource(stream);
+        audioSource.connect(audioDestination.current);
       }
     }
 
@@ -246,8 +245,14 @@ export default function IngestDesktopApp() {
           onAddSource={handleAddSource}
         />
 
+        <Card header="Audio Mixer">
+          <Stack direction="column" sx={{ p: 0.5 }}>
+            <VolumeVisualizer stream={stream} />
+          </Stack>
+        </Card>
+
         <Card header="Controls">
-          <Stack direction="column" spacing={0.5} sx={{ padding: 0.5 }}>
+          <Stack direction="column" spacing={0.5} sx={{ p: 0.5 }}>
             {broadcasting ? (
               <Button
                 variant="contained"

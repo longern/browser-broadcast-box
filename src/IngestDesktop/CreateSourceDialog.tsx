@@ -15,6 +15,9 @@ import {
   TextField,
 } from "@mui/material";
 
+import VideoStream from "./VideoStream";
+import VolumeVisualizer from "./VolumeVisualizer";
+
 function TextSource({ onChange }: { onChange: (source: any) => void }) {
   const [content, setContent] = React.useState("");
   const [fontSize, setFontSize] = React.useState(128);
@@ -111,12 +114,13 @@ function ImageSource({ onChange }: { onChange: (source: any) => void }) {
 function ScreenSource({ onChange }: { onChange: (source: any) => void }) {
   const [active, setActive] = React.useState(false);
 
-  const stream = React.useRef<MediaStream | null>(null);
+  const [stream, setStream] = React.useState<MediaStream | undefined>(
+    undefined
+  );
   const lock = React.useRef(false);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const getStream = React.useCallback(async () => {
-    if (stream.current) return;
+    if (stream) return;
     if (lock.current) return;
     setActive(false);
     lock.current = true;
@@ -125,8 +129,7 @@ function ScreenSource({ onChange }: { onChange: (source: any) => void }) {
         video: { displaySurface: "monitor" } as MediaTrackConstraints,
         audio: true,
       });
-      stream.current = newStream;
-      videoRef.current!.srcObject = newStream;
+      setStream(newStream);
       setActive(true);
       onChange({
         type: "screen",
@@ -139,12 +142,12 @@ function ScreenSource({ onChange }: { onChange: (source: any) => void }) {
     } finally {
       lock.current = false;
     }
-  }, [onChange]);
+  }, [onChange, stream]);
 
   function stopStream() {
-    if (!stream.current) return;
-    stream.current.getTracks().forEach((track) => track.stop());
-    stream.current = null;
+    if (!stream) return;
+    stream.getTracks().forEach((track) => track.stop());
+    setStream(undefined);
     setActive(false);
     onChange(null);
   }
@@ -152,17 +155,18 @@ function ScreenSource({ onChange }: { onChange: (source: any) => void }) {
   return (
     <>
       <Stack alignItems={"center"}>
-        <video
+        <VideoStream
           autoPlay
           muted
           width="240"
           height="135"
-          ref={videoRef}
           style={{
             background: "black",
           }}
-        ></video>
+          stream={stream}
+        ></VideoStream>
       </Stack>
+      <VolumeVisualizer stream={stream} />
       {active ? (
         <Button variant="contained" color="error" onClick={stopStream}>
           Stop
@@ -179,12 +183,13 @@ function ScreenSource({ onChange }: { onChange: (source: any) => void }) {
 function CameraSource({ onChange }: { onChange: (source: any) => void }) {
   const [active, setActive] = React.useState(false);
 
-  const stream = React.useRef<MediaStream | null>(null);
+  const [stream, setStream] = React.useState<MediaStream | undefined>(
+    undefined
+  );
   const lock = React.useRef(false);
-  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const getStream = React.useCallback(async () => {
-    if (stream.current) return;
+    if (stream) return;
     if (lock.current) return;
     setActive(false);
     lock.current = true;
@@ -200,8 +205,7 @@ function CameraSource({ onChange }: { onChange: (source: any) => void }) {
           autoGainControl: false,
         },
       });
-      stream.current = newStream;
-      videoRef.current!.srcObject = newStream;
+      setStream(newStream);
       setActive(true);
       onChange({
         type: "camera",
@@ -214,12 +218,12 @@ function CameraSource({ onChange }: { onChange: (source: any) => void }) {
     } finally {
       lock.current = false;
     }
-  }, [onChange]);
+  }, [onChange, stream]);
 
   function stopStream() {
-    if (!stream.current) return;
-    stream.current.getTracks().forEach((track) => track.stop());
-    stream.current = null;
+    if (!stream) return;
+    stream.getTracks().forEach((track) => track.stop());
+    setStream(undefined);
     setActive(false);
     onChange(null);
   }
@@ -227,17 +231,18 @@ function CameraSource({ onChange }: { onChange: (source: any) => void }) {
   return (
     <>
       <Stack alignItems={"center"}>
-        <video
+        <VideoStream
           autoPlay
           muted
           width="240"
           height="135"
-          ref={videoRef}
           style={{
             background: "black",
           }}
-        ></video>
+          stream={stream}
+        ></VideoStream>
       </Stack>
+      <VolumeVisualizer stream={stream} />
       {active ? (
         <Button variant="contained" color="error" onClick={stopStream}>
           Stop

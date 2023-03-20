@@ -2,6 +2,7 @@ import React from "react";
 
 import { mediaInputs } from "./mediaInputs";
 import DraggableResizeable from "./DraggableResizable";
+import VideoStream from "./VideoStream";
 
 export type Source = {
   id: string;
@@ -28,25 +29,6 @@ export type Source = {
       color: string;
       fontSize: number;
     }
-);
-
-const VideoMemo = React.memo(
-  (
-    props: React.DetailedHTMLProps<
-      React.VideoHTMLAttributes<HTMLVideoElement>,
-      HTMLVideoElement
-    > & { stream?: MediaStream }
-  ) => {
-    const { stream, ...rest } = props;
-    return (
-      <video
-        {...rest}
-        ref={(el) => {
-          el && (el.srcObject = stream || null);
-        }}
-      />
-    );
-  }
 );
 
 export default function Preview({
@@ -105,7 +87,7 @@ export default function Preview({
         }}
       >
         {previewEnabled ? (
-          <VideoMemo autoPlay playsInline muted stream={previewStream} />
+          <VideoStream autoPlay playsInline muted stream={previewStream} />
         ) : (
           sources.map((source, index) => {
             const { x, y } = source;
@@ -169,7 +151,7 @@ export default function Preview({
                       zIndex: index,
                     }}
                   >
-                    <VideoMemo
+                    <VideoStream
                       autoPlay
                       playsInline
                       muted
