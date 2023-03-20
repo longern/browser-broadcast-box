@@ -113,6 +113,7 @@ function ScreenSource({ onChange }: { onChange: (source: any) => void }) {
 
   const stream = React.useRef<MediaStream | null>(null);
   const lock = React.useRef(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const getStream = React.useCallback(async () => {
     if (stream.current) return;
@@ -125,6 +126,7 @@ function ScreenSource({ onChange }: { onChange: (source: any) => void }) {
         audio: true,
       });
       stream.current = newStream;
+      videoRef.current!.srcObject = newStream;
       setActive(true);
       onChange({
         type: "screen",
@@ -147,14 +149,30 @@ function ScreenSource({ onChange }: { onChange: (source: any) => void }) {
     onChange(null);
   }
 
-  return active ? (
-    <Button variant="contained" color="error" onClick={stopStream}>
-      Stop
-    </Button>
-  ) : (
-    <Button variant="contained" onClick={getStream}>
-      Activate
-    </Button>
+  return (
+    <>
+      <Stack alignItems={"center"}>
+        <video
+          autoPlay
+          muted
+          width="240"
+          height="135"
+          ref={videoRef}
+          style={{
+            background: "black",
+          }}
+        ></video>
+      </Stack>
+      {active ? (
+        <Button variant="contained" color="error" onClick={stopStream}>
+          Stop
+        </Button>
+      ) : (
+        <Button variant="contained" onClick={getStream}>
+          Activate
+        </Button>
+      )}
+    </>
   );
 }
 
@@ -163,6 +181,7 @@ function CameraSource({ onChange }: { onChange: (source: any) => void }) {
 
   const stream = React.useRef<MediaStream | null>(null);
   const lock = React.useRef(false);
+  const videoRef = React.useRef<HTMLVideoElement>(null);
 
   const getStream = React.useCallback(async () => {
     if (stream.current) return;
@@ -182,6 +201,7 @@ function CameraSource({ onChange }: { onChange: (source: any) => void }) {
         },
       });
       stream.current = newStream;
+      videoRef.current!.srcObject = newStream;
       setActive(true);
       onChange({
         type: "camera",
@@ -204,14 +224,30 @@ function CameraSource({ onChange }: { onChange: (source: any) => void }) {
     onChange(null);
   }
 
-  return active ? (
-    <Button variant="contained" color="error" onClick={stopStream}>
-      Stop
-    </Button>
-  ) : (
-    <Button variant="contained" onClick={getStream}>
-      Activate
-    </Button>
+  return (
+    <>
+      <Stack alignItems={"center"}>
+        <video
+          autoPlay
+          muted
+          width="240"
+          height="135"
+          ref={videoRef}
+          style={{
+            background: "black",
+          }}
+        ></video>
+      </Stack>
+      {active ? (
+        <Button variant="contained" color="error" onClick={stopStream}>
+          Stop
+        </Button>
+      ) : (
+        <Button variant="contained" onClick={getStream}>
+          Activate
+        </Button>
+      )}
+    </>
   );
 }
 

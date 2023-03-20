@@ -46,7 +46,6 @@ async function startRendering(output, frameRate) {
           break;
       }
     }
-    ctx.commit();
   }, 1000 / frameRate);
 }
 
