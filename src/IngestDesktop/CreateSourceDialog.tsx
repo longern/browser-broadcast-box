@@ -127,7 +127,14 @@ function ScreenSource({ onChange }: { onChange: (source: any) => void }) {
     try {
       const newStream = await navigator.mediaDevices.getDisplayMedia({
         video: { displaySurface: "monitor" } as MediaTrackConstraints,
-        audio: true,
+        audio: {
+          channelCount: 2,
+          sampleRate: 48000,
+          sampleSize: 16,
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
       });
       setStream(newStream);
       setActive(true);
