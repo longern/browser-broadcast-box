@@ -6,6 +6,7 @@ import {
   InputLabel,
   MenuItem,
   Select,
+  SelectChangeEvent,
   Stack,
   TextField,
 } from "@mui/material";
@@ -20,12 +21,15 @@ const isMobile =
   );
 
 export default function IngestForm({
-  onDeviceChange = () => {},
-  onStartStream = () => {},
+  onDeviceChange,
+  onStartStream,
+}: {
+  onDeviceChange?: (deviceId: string | null) => Promise<void>;
+  onStartStream?: (options: { liveUrl: string; title: string }) => void;
 }) {
   const [liveUrl, setLiveUrl] = useState("");
   const [title, setTitle] = useState("Welcome!");
-  const [devices, setDevices] = useState([]);
+  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDevice, setSelectedDevice] = useState("none");
 
   async function init() {
@@ -48,7 +52,7 @@ export default function IngestForm({
         kind: "videoinput",
         label: "Screen",
         deviceId: "screen",
-      });
+      } as MediaDeviceInfo);
 
     setDevices(devices);
   }
@@ -57,8 +61,9 @@ export default function IngestForm({
     init();
   }, []);
 
-  async function handleDeviceChange(e) {
-    await onDeviceChange(e.target.value === "none" ? null : e.target.value);
+  async function handleDeviceChange(e: SelectChangeEvent) {
+    if (onDeviceChange)
+      await onDeviceChange(e.target.value === "none" ? null : e.target.value);
     setSelectedDevice(e.target.value);
     e.preventDefault();
   }
@@ -133,7 +138,7 @@ export default function IngestForm({
         <Button
           variant="contained"
           disabled={!validate()}
-          onClick={() => onStartStream({ liveUrl: liveUrl, title: title })}
+          onClick={() => onStartStream?.({ liveUrl, title })}
         >
           Start
         </Button>

@@ -9,14 +9,10 @@
  *
  * https://developer.mozilla.org/en-US/docs/Glossary/SDP
  * https://www.ietf.org/archive/id/draft-ietf-wish-whip-01.html#name-protocol-operation
- *
- * @param {RTCPeerConnection} peerConnection
- * @param {string | URL} endpoint
- * @returns {Promise<string | null>}
  */
 export default async function negotiateConnectionWithClientOffer(
-  peerConnection,
-  endpoint
+  peerConnection: RTCPeerConnection,
+  endpoint: string | URL
 ) {
   /** https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createOffer */
   const offer = await peerConnection.createOffer();
@@ -24,7 +20,7 @@ export default async function negotiateConnectionWithClientOffer(
   await peerConnection.setLocalDescription(offer);
   /** Wait for ICE gathering to complete */
   let ofr = await waitToCompleteICEGathering(peerConnection);
-  if (!ofr) {
+  if (!ofr || !ofr.sdp) {
     throw Error("failed to gather ICE candidates for offer");
   }
 
@@ -56,13 +52,15 @@ export default async function negotiateConnectionWithClientOffer(
     console.log(
       "Remember to update the URL passed into the WHIP or WHEP client"
     );
+    return null;
   } else {
     const errorMessage = await response.text();
     console.error(errorMessage);
+    return null;
   }
 }
 
-async function postSDPOffer(endpoint, data) {
+async function postSDPOffer(endpoint: string | URL, data: string) {
   const request = new Request(endpoint, {
     method: "POST",
     mode: "cors",
@@ -76,12 +74,16 @@ async function postSDPOffer(endpoint, data) {
       url.protocol === "http:" &&
       !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
     ) {
-      const response = await new Promise((resolve, reject) => {
+      const response = await new Promise<Response>((resolve, reject) => {
         // Create popup window
-        window.popup = window.open(url, "_blank");
+        const popup = window.open(url, "_blank");
+        if (!popup) {
+          reject(new Error("Failed to open popup"));
+          return;
+        }
 
         const intervalId = setInterval(() => {
-          if (window.popup.closed) reject(new Error("Popup closed"));
+          if (popup.closed) reject(new Error("Popup closed"));
         }, 1000);
 
         window.addEventListener("message", async (event) => {
@@ -89,7 +91,7 @@ async function postSDPOffer(endpoint, data) {
           if (origin !== url.origin) return;
 
           if (data.type === "event" && data.event === "load") {
-            window.popup.postMessage(
+            popup.postMessage(
               {
                 type: "request",
                 url: request.url,
@@ -101,7 +103,7 @@ async function postSDPOffer(endpoint, data) {
             );
           } else if (data.type === "response") {
             clearInterval(intervalId);
-            window.popup.close();
+            popup.close();
             const response = new Response(data.body, {
               status: data.status,
               statusText: data.statusText,
@@ -115,7 +117,7 @@ async function postSDPOffer(endpoint, data) {
     }
   }
 
-  return await fetch(request);
+  return fetch(request);
 }
 
 /**
@@ -125,17 +127,14 @@ async function postSDPOffer(endpoint, data) {
  * https://www.ietf.org/archive/id/draft-ietf-wish-whip-01.html#section-4.1
  * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/iceGatheringState
  * https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/icegatheringstatechange_event
- *
- * @param {RTCPeerConnection} peerConnection
- * @returns {Promise<RTCSessionDescription | null>}
  */
-async function waitToCompleteICEGathering(peerConnection) {
-  return new Promise((resolve) => {
+async function waitToCompleteICEGathering(peerConnection: RTCPeerConnection) {
+  return new Promise<RTCSessionDescriptionInit | null>((resolve) => {
     /** Wait at most 1 second for ICE gathering. */
     setTimeout(function () {
       resolve(peerConnection.localDescription);
     }, 1000);
-    peerConnection.onicegatheringstatechange = (ev) =>
+    peerConnection.onicegatheringstatechange = (_ev) =>
       peerConnection.iceGatheringState === "complete" &&
       resolve(peerConnection.localDescription);
   });

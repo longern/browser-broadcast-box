@@ -1,7 +1,11 @@
 import { Box, Button, Stack, TextField } from "@mui/material";
-import React, { useState } from "react";
+import { useState } from "react";
 
-export default function IngestForm({ onWatchStream = () => {} }) {
+export default function EgressForm({
+  onWatchStream,
+}: {
+  onWatchStream?: (options: { liveUrl: string }) => void;
+}) {
   const [liveUrl, setLiveUrl] = useState("");
 
   function validate() {
@@ -20,7 +24,7 @@ export default function IngestForm({ onWatchStream = () => {} }) {
         <Button
           variant="contained"
           disabled={!validate()}
-          onClick={() => onWatchStream({ liveUrl: liveUrl })}
+          onClick={() => onWatchStream?.({ liveUrl: liveUrl })}
         >
           Watch
         </Button>

@@ -2,7 +2,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import { Button, Dialog, DialogContent, IconButton } from "@mui/material";
 import React, { useState } from "react";
 
-import Messages from "./Messages.tsx";
+import Messages from "./Messages";
 
 export default function Footer({ onStopClick = () => {} }) {
   const [settingsOpen, setSettingsOpen] = useState(false);

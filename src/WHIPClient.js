@@ -1,5 +1,5 @@
-import { preferCodec } from "./codecs.js";
-import negotiateConnectionWithClientOffer from "./negotiateConnectionWithClientOffer.js";
+import { preferCodec } from "./codecs";
+import negotiateConnectionWithClientOffer from "./negotiateConnectionWithClientOffer";
 /**
  * Example implementation of a client that uses WHIP to broadcast video over WebRTC
  *

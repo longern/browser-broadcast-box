@@ -3,25 +3,25 @@ import React, { useState } from "react";
 import { Dialog, DialogContent } from "@mui/material";
 import IngestFooter from "./components/IngestFooter";
 import IngestForm from "./components/IngestForm";
-import VideoStream from "./components/VideoStream";
+import VideoStream from "./IngestDesktop/VideoStream";
 import {
   MessagesContext,
   SetMessagesContext,
-} from "./contexts/MessagesContext.ts";
+} from "./contexts/MessagesContext";
 import { Box } from "@mui/system";
 
 function IngestApp() {
   const [open, setOpen] = useState(true);
-  const [stream, setStream] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [stream, setStream] = useState<MediaStream | undefined>(undefined);
+  const [messages, setMessages] = useState([] as any[]);
   const [views, setViews] = useState(0);
 
-  async function handleDeviceChange(deviceId) {
+  async function handleDeviceChange(deviceId: string | null) {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
     }
 
-    if (!deviceId) return setStream(null);
+    if (!deviceId) return setStream(undefined);
 
     if (deviceId === "screen") {
       const newStream = await navigator.mediaDevices.getDisplayMedia({
@@ -29,9 +29,9 @@ function IngestApp() {
           width: 1920,
           height: 1080,
           displaySurface: "monitor",
-        },
+        } as MediaTrackConstraints,
         audio: {
-          channels: 2,
+          channelCount: 2,
           autoGainControl: false,
           echoCancellation: false,
           noiseSuppression: false,
@@ -47,7 +47,7 @@ function IngestApp() {
           height: 1080,
         },
         audio: {
-          channels: 2,
+          channelCount: 2,
           autoGainControl: false,
           echoCancellation: false,
           noiseSuppression: false,
@@ -57,7 +57,10 @@ function IngestApp() {
     }
   }
 
-  async function handleStartStream(options) {
+  async function handleStartStream(options: {
+    liveUrl: string;
+    title?: string;
+  }) {
     const { liveUrl, title } = options;
     import("./WHIPClient").then((WHIPClientModule) => {
       const WHIPClient = WHIPClientModule.default;
@@ -69,7 +72,7 @@ function IngestApp() {
         (_ev) => {
           if (client.peerConnection.iceGatheringState !== "complete") return;
           client.peerConnection.getSenders().forEach((sender) => {
-            if (sender.track.kind === "video") {
+            if (sender.track?.kind === "video") {
               const parameters = sender.getParameters();
               parameters.encodings[0].maxBitrate = 5000000;
               sender.setParameters(parameters);
@@ -123,7 +126,19 @@ function IngestApp() {
               />
             </DialogContent>
           </Dialog>
-          <VideoStream stream={stream} muted />
+          <VideoStream
+            stream={stream}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              position: "absolute",
+              width: "100%",
+              height: "100%",
+              objectFit: "contain",
+              zIndex: -1,
+            }}
+          />
           <Box
             sx={{
               position: "absolute",
