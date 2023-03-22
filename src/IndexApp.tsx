@@ -22,7 +22,7 @@ function IndexApp() {
   async function fetchChannels() {
     setLoading(true);
     try {
-      const channelResponse = await fetch("/api/channels");
+      const channelResponse = await fetch("/api/channels?live=1");
       if (channelResponse.status >= 299) {
         setListChannelsNotSupported(true);
         return;
@@ -46,7 +46,9 @@ function IndexApp() {
       <AppBar position="static">
         <Toolbar variant="dense" disableGutters sx={{ placeItems: "stretch" }}>
           <Box sx={{ flexGrow: 1 }} />
-          <Button href="#ingest">Live</Button>
+          <Button href="#ingest" color="inherit">
+            Live
+          </Button>
         </Toolbar>
       </AppBar>
       <Box component="main">

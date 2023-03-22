@@ -1,31 +1,27 @@
-import React, { useContext } from "react";
+import { Box, SxProps } from "@mui/material";
+import type { Message } from "../contexts/MessagesContext";
 
-import { MessagesContext } from "../contexts/MessagesContext";
-import { Box } from "@mui/material";
-
-export default function Messages() {
-  const messages = useContext(MessagesContext);
+export default function Messages({
+  messages,
+  sx,
+  messageSx,
+}: {
+  messages: Message[];
+  sx?: SxProps;
+  messageSx?: SxProps;
+}) {
   return (
     <Box
       sx={{
         display: "flex",
         flexDirection: "column-reverse",
         alignItems: "flex-start",
-        maxHeight: "50vh",
         overflowY: "auto",
+        ...sx,
       }}
     >
       {messages.reverse().map((message) => (
-        <Box
-          key={message.id}
-          sx={{
-            backgroundColor: "rgba(128, 128, 128, 0.5)",
-            borderRadius: "14px",
-            padding: "0.5em 0.8em",
-            marginBottom: "0.5em",
-            fontSize: "0.8em",
-          }}
-        >
+        <Box key={message.id} sx={{ ...messageSx }}>
           {message.content}
         </Box>
       ))}

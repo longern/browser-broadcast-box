@@ -5,6 +5,7 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import "./index.css";
 import IndexApp from "./IndexApp";
 import EgressApp from "./EgressApp";
+import { CssBaseline } from "@mui/material";
 
 const IngestApp = React.lazy(() => import("./IngestApp"));
 const IngestDesktopApp = React.lazy(() => import("./IngestDesktop/App"));
@@ -28,6 +29,7 @@ function Root() {
   return (
     <React.StrictMode>
       <ThemeProvider theme={darkTheme}>
+        <CssBaseline />
         {path === "#ingest" ? (
           <Suspense>
             <IngestApp />

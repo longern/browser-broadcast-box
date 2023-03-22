@@ -81,6 +81,19 @@ function IngestApp() {
         }
       );
 
+      client.peerConnection.addEventListener(
+        "connectionstatechange",
+        function () {
+          if (this.connectionState === "connected") {
+            fetch("/api/channels/admin", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ live: true, title }),
+            });
+          }
+        }
+      );
+
       client.dataChannel.addEventListener("message", (ev) => {
         const data = JSON.parse(ev.data);
         const { type, id, body } = data;

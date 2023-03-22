@@ -3,6 +3,7 @@ import {
   Button,
   FormControl,
   IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
@@ -84,12 +85,14 @@ export default function IngestForm({
           onChange={(e) => setLiveUrl(e.target.value)}
           InputProps={{
             endAdornment: (
-              <IconButton
-                sx={{ visibility: liveUrl ? "visible" : "hidden" }}
-                onClick={() => setLiveUrl("")}
-              >
-                <CloseIcon />
-              </IconButton>
+              <InputAdornment position="end">
+                <IconButton
+                  sx={{ visibility: liveUrl ? "visible" : "hidden" }}
+                  onClick={() => setLiveUrl("")}
+                >
+                  <CloseIcon />
+                </IconButton>
+              </InputAdornment>
             ),
           }}
         ></TextField>
@@ -105,6 +108,7 @@ export default function IngestForm({
               <IconButton
                 sx={{ visibility: title ? "visible" : "hidden" }}
                 onClick={() => setTitle("")}
+                edge="end"
               >
                 <CloseIcon />
               </IconButton>
