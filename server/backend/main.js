@@ -28,7 +28,7 @@ function waitToCompleteICEGathering(peerConnection) {
 }
 
 function sendLiveViewers(resourceId) {
-  const dataChannel = resources[resourceId].dataChannel;
+  const dataChannel = resources[resourceId]?.dataChannel;
   if (!dataChannel) return;
   dataChannel.send(
     JSON.stringify({

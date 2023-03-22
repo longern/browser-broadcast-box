@@ -1,53 +1,9 @@
 import { serve, ConnInfo } from "./deps.ts";
 import { serveDir, serveFile } from "./deps.ts";
 
-let globalSocket: WebSocket | null = null;
-const handlerMap: Record<
-  string,
-  (data: {
-    status: number;
-    headers: Record<string, string>;
-    body: string | null;
-  }) => void
-> = {};
-
-// WebSocket handler
-function websocketHandler(req: Request, connInfo: ConnInfo): Response {
-  const remoteAddr = connInfo.remoteAddr as Deno.NetAddr;
-  if (remoteAddr.hostname !== "127.0.0.1") {
-    return new Response("Not Allowed", { status: 403 });
-  }
-
-  if (globalSocket !== null) {
-    return new Response("Already Connected", { status: 409 });
-  }
-
-  const { socket, response } = Deno.upgradeWebSocket(req);
-  socket.onopen = () => {
-    const env: Record<string, string> = {};
-    const envPublicIp = Deno.env.get("PUBLIC_IP");
-    if (envPublicIp) env.PUBLIC_IP = envPublicIp;
-    socket.send(JSON.stringify({ type: "env", items: env }));
-    const remoteSocket = `${remoteAddr.hostname}:${remoteAddr.port}`;
-    console.log(`Backend socket ${remoteSocket} connected`);
-  };
-  socket.onmessage = (e) => {
-    try {
-      const data = JSON.parse(e.data);
-      if (data.type === "response") {
-        handlerMap[data.id](data);
-        delete handlerMap[data.id];
-      }
-    } catch (e) {
-      console.log(e);
-    }
-  };
-  socket.onerror = (e) =>
-    console.log("socket errored:", (<ErrorEvent>e).message);
-  socket.onclose = () => (globalSocket = null);
-  globalSocket = socket;
-  return response;
-}
+import { websocketHandler, websocketProxyHandler } from "./ws.ts";
+import app from "./app.ts";
+import { basicAuth } from "./deps.ts";
 
 async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
   // Handle OPTIONS request
@@ -78,41 +34,18 @@ async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
     return serveDir(req, { fsRoot: "./build" });
   }
 
-  if (
-    req.method === "GET" &&
-    pathname === "/api/whip" &&
-    req.headers.get("accept")?.startsWith("text/html")
-  ) {
-    return serveFile(req, `${__dirname}proxy.html`);
+  if (pathname === "/api/whip" || pathname === "/api/whep") {
+    if (
+      req.method === "GET" &&
+      req.headers.get("accept")?.startsWith("text/html")
+    ) {
+      return serveFile(req, `${__dirname}proxy.html`);
+    }
+
+    return websocketProxyHandler(req);
   }
 
-  if (globalSocket === null) {
-    return new Response("503 Service Unavailable", { status: 503 });
-  }
-
-  const requestID = crypto.randomUUID();
-  globalSocket.send(
-    JSON.stringify({
-      type: "request",
-      id: requestID,
-      method: req.method,
-      headers: Object.fromEntries(req.headers),
-      url: req.url,
-      body: req.body ? await req.text() : null,
-    })
-  );
-
-  const response = await new Promise<Response>((resolve) => {
-    handlerMap[requestID] = (data) => {
-      const { status, headers, body } = data;
-      resolve(new Response(body, { status, headers }));
-    };
-    setTimeout(() => {
-      resolve(new Response("Request Timeout", { status: 408 }));
-    }, 10000);
-  });
-
-  return response;
+  return app.fetch(req);
 }
 
 async function detectPublicIp() {
@@ -167,8 +100,27 @@ if (Deno.env.get("HEADLESS_CHROMIUM")) {
       "--headless",
       "--no-sandbox",
       "--remote-debugging-port=0",
-      Deno.env.get("HEADLESS_CHROMIUM") || "",
+      Deno.env.get("HEADLESS_CHROMIUM")!,
     ],
+  });
+}
+
+if (Deno.env.get("ADMIN_PASSWORD")) {
+  console.log("Admin password:", Deno.env.get("ADMIN_PASSWORD")!);
+  const authMiddleware = basicAuth({
+    username: "admin",
+    password: Deno.env.get("ADMIN_PASSWORD")!,
+  });
+  app.post("/api/*", authMiddleware);
+  app.patch("/api/*", authMiddleware);
+  app.delete("/api/*", authMiddleware);
+  await app.request("/api/channels", {
+    method: "POST",
+    body: JSON.stringify({
+      id: "admin",
+      title: "",
+      thumbnail: "",
+    }),
   });
 }
 
