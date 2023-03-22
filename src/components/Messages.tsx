@@ -20,7 +20,7 @@ export default function Messages({
         ...sx,
       }}
     >
-      {messages.reverse().map((message) => (
+      {messages.map((message) => (
         <Box key={message.id} sx={{ ...messageSx }}>
           {message.content}
         </Box>

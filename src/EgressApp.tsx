@@ -176,6 +176,7 @@ function EgressMobilePortraitStream({
         <Stack sx={{ position: "absolute", bottom: 0, width: "100%", p: 1 }}>
           <Messages
             messages={messages}
+            sx={{ maxHeight: "50vh" }}
             messageSx={{
               backgroundColor: "rgba(127, 127, 127, 0.5)",
               borderRadius: "16px",
@@ -223,6 +224,20 @@ function EgressApp() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!stream) return;
+    const videoElement = document.createElement("video");
+    videoElement.muted = true;
+    videoElement.srcObject = stream;
+    videoElement.addEventListener("loadedmetadata", function handleLoaded() {
+      setVideoSize({
+        width: videoElement.videoWidth,
+        height: videoElement.videoHeight,
+      });
+      videoElement.removeEventListener("loadedmetadata", handleLoaded);
+    });
+  }, [stream]);
+
   async function handleWatchStream(options: { liveUrl: string }) {
     const { liveUrl } = options;
     client.current = new WHEPClient(liveUrl);
@@ -236,19 +251,6 @@ function EgressApp() {
       }
     );
     setStream(client.current.stream);
-
-    client.current.stream.addEventListener(
-      "addtrack",
-      (ev: MediaStreamTrackEvent) => {
-        if (ev.track.kind === "video") {
-          const settings = ev.track.getSettings();
-          if (settings.width && settings.height) {
-            const { width, height } = settings;
-            setVideoSize({ width, height });
-          }
-        }
-      }
-    );
 
     setDialogOpen(false);
   }

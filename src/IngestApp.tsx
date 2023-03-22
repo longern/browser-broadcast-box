@@ -16,6 +16,8 @@ function IngestApp() {
   const [messages, setMessages] = useState([] as any[]);
   const [views, setViews] = useState(0);
 
+  const videoRef = React.useRef<HTMLVideoElement>(null);
+
   async function handleDeviceChange(deviceId: string | null) {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
@@ -85,10 +87,27 @@ function IngestApp() {
         "connectionstatechange",
         function () {
           if (this.connectionState === "connected") {
+            const canvas = document.createElement("canvas");
+            const context = canvas.getContext("2d");
+            const videoElement = videoRef.current!;
+            if (videoElement.videoWidth > videoElement.videoHeight) {
+              canvas.width = 320;
+              canvas.height = 180;
+              context!.drawImage(videoElement, 0, 0, 320, 180);
+            } else {
+              canvas.width = 180;
+              canvas.height = 320;
+              context!.drawImage(videoElement, 0, 0, 180, 320);
+            }
+
             fetch("/api/channels/admin", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ live: true, title }),
+              body: JSON.stringify({
+                live: true,
+                title,
+                thumbnail: canvas.toDataURL("image/jpeg", 0.5),
+              }),
             });
           }
         }
@@ -140,6 +159,7 @@ function IngestApp() {
             </DialogContent>
           </Dialog>
           <VideoStream
+            ref={videoRef}
             stream={stream}
             autoPlay
             playsInline
