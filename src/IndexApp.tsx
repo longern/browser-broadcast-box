@@ -11,10 +11,11 @@ import {
 import { Container } from "@mui/system";
 
 import ChannelGrid from "./components/ChannelGrid";
+import type { Channel } from "./components/ChannelGrid";
 
 function IndexApp() {
   const [loading, setLoading] = useState(true);
-  const [channels, setChannels] = useState([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
   const [listChannelsNotSupported, setListChannelsNotSupported] =
     useState(false);
 
