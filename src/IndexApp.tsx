@@ -16,6 +16,7 @@ import type { Channel } from "./components/ChannelGrid";
 function IndexApp() {
   const [loading, setLoading] = useState(true);
   const [channels, setChannels] = useState<Channel[]>([]);
+  const [user, setUser] = useState<Record<string, any> | null>(null);
   const [listChannelsNotSupported, setListChannelsNotSupported] =
     useState(false);
 
@@ -37,8 +38,21 @@ function IndexApp() {
     }
   }
 
+  async function fetchCurrentUser() {
+    try {
+      const currentUserResponse = await fetch("/api/users/current");
+      if (currentUserResponse.status >= 299) {
+        return;
+      }
+
+      const currentUser = await currentUserResponse.json();
+      setUser(currentUser);
+    } catch (err) {}
+  }
+
   useEffect(() => {
     fetchChannels();
+    fetchCurrentUser();
   }, []);
 
   return (
@@ -46,7 +60,10 @@ function IndexApp() {
       <AppBar position="static">
         <Toolbar variant="dense" disableGutters sx={{ placeItems: "stretch" }}>
           <Box sx={{ flexGrow: 1 }} />
-          <Button href="#ingest" color="inherit">
+          <Button
+            href={user ? `?c=${user.id}#ingest` : "#ingest"}
+            color="inherit"
+          >
             Live
           </Button>
         </Toolbar>

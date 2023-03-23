@@ -52,8 +52,16 @@ function EgressDesktop({
           objectFit: "contain",
         }}
       />
-      <Stack spacing={1} sx={{ flexShrink: 0, p: 1, width: 360 }}>
-        <Messages messages={messages} sx={{ flexGrow: 1 }}></Messages>
+      <Stack
+        spacing={1}
+        sx={{
+          flexShrink: 0,
+          p: 1,
+          width: 360,
+          justifyContent: "space-between",
+        }}
+      >
+        <Messages messages={messages}></Messages>
         <TextField
           id="chat-input"
           label="Chat"
@@ -107,8 +115,16 @@ function EgressMobileLandscapeStream({
           background: "black",
         }}
       />
-      <Stack spacing={1} sx={{ flexGrow: 1, minHeight: 0, p: 1 }}>
-        <Messages messages={messages} sx={{ flexGrow: 1 }}></Messages>
+      <Stack
+        spacing={1}
+        sx={{
+          flexGrow: 1,
+          minHeight: 0,
+          p: 1,
+          justifyContent: "space-between",
+        }}
+      >
+        <Messages messages={messages}></Messages>
         <Stack direction="row">
           <TextField
             id="chat-input"
@@ -173,7 +189,15 @@ function EgressMobilePortraitStream({
         >
           <ArrowBack />
         </IconButton>
-        <Stack sx={{ position: "absolute", bottom: 0, width: "100%", p: 1 }}>
+        <Stack
+          sx={{
+            position: "absolute",
+            bottom: 0,
+            width: "100%",
+            p: 1,
+            justifyContent: "space-between",
+          }}
+        >
           <Messages
             messages={messages}
             sx={{ maxHeight: "50vh" }}

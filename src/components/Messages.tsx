@@ -16,6 +16,7 @@ export default function Messages({
         display: "flex",
         flexDirection: "column-reverse",
         alignItems: "flex-start",
+        overflowWrap: "anywhere",
         overflowY: "auto",
         ...sx,
       }}

@@ -23,6 +23,18 @@ app.use("/api/*", async (c, next) => {
   await basicAuth({ username, password })(c, next);
 });
 
+app.get("/api/users/current", (c) => {
+  try {
+    const auth = c.req.header("Authorization") || "";
+    const userPass = atob(auth.split(" ")[1]);
+    const user = userPass.split(":")[0];
+    return c.json({ id: user });
+  } catch (_err) {
+    c.status(401);
+    return c.json({ error: "Unauthorized" });
+  }
+});
+
 app.get("/api/channels", (c) => {
   const live = c.req.query("live");
   if (live) {
