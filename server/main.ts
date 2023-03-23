@@ -1,9 +1,11 @@
-import { serve, ConnInfo } from "./deps.ts";
-import { serveDir, serveFile } from "./deps.ts";
+import { ConnInfo, serve, serveDir, serveFile } from "./deps.ts";
 
-import { websocketHandler, websocketProxyHandler } from "./ws.ts";
 import app from "./app.ts";
-import { basicAuth } from "./deps.ts";
+import { websocketHandler, websocketProxyHandler } from "./ws.ts";
+
+app.post("/api/:endpoint{whip|whep}", (c) => {
+  return websocketProxyHandler(c.req.raw);
+});
 
 async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
   // Handle OPTIONS request
@@ -34,18 +36,15 @@ async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
     return serveDir(req, { fsRoot: "./build" });
   }
 
-  if (pathname === "/api/whip" || pathname === "/api/whep") {
-    if (
-      req.method === "GET" &&
-      req.headers.get("accept")?.startsWith("text/html")
-    ) {
-      return serveFile(req, `${__dirname}proxy.html`);
-    }
-
-    return websocketProxyHandler(req);
+  if (
+    (pathname === "/api/whip" || pathname === "/api/whep") &&
+    req.method === "GET" &&
+    req.headers.get("accept")?.startsWith("text/html")
+  ) {
+    return serveFile(req, `${__dirname}proxy.html`);
   }
 
-  return app.fetch(req);
+  return app.fetch(req, Deno.env.toObject());
 }
 
 async function detectPublicIp() {
@@ -88,40 +87,47 @@ function corsHandler(
   };
 }
 
-if (!Deno.env.get("PUBLIC_IP")) {
-  const publicIp = await detectPublicIp();
-  if (publicIp) Deno.env.set("PUBLIC_IP", publicIp);
-}
+async function init() {
+  if (!Deno.env.get("PUBLIC_IP")) {
+    const publicIp = await detectPublicIp();
+    if (publicIp) Deno.env.set("PUBLIC_IP", publicIp);
+  }
 
-if (Deno.env.get("HEADLESS_CHROMIUM")) {
-  Deno.run({
-    cmd: [
-      "chromium-browser",
-      "--headless",
-      "--no-sandbox",
-      "--remote-debugging-port=0",
-      Deno.env.get("HEADLESS_CHROMIUM")!,
-    ],
-  });
-}
+  if (Deno.env.get("HEADLESS_CHROMIUM")) {
+    Deno.run({
+      cmd: [
+        "chromium-browser",
+        "--headless",
+        "--no-sandbox",
+        "--remote-debugging-port=0",
+        Deno.env.get("HEADLESS_CHROMIUM")!,
+      ],
+    });
+  }
 
-if (Deno.env.get("ADMIN_PASSWORD")) {
-  console.log("Admin password:", Deno.env.get("ADMIN_PASSWORD")!);
-  const authMiddleware = basicAuth({
-    username: "admin",
-    password: Deno.env.get("ADMIN_PASSWORD")!,
-  });
-  app.post("/api/*", authMiddleware);
-  app.patch("/api/*", authMiddleware);
-  app.delete("/api/*", authMiddleware);
-  await app.request("/api/channels", {
-    method: "POST",
-    body: JSON.stringify({
-      id: "admin",
+  if (Deno.env.get("ADMIN_PASSWORD")) {
+    const adminUsername = Deno.env.get("ADMIN_USERNAME") || "admin";
+    const initialChannel = {
+      id: adminUsername,
       title: "",
       thumbnail: "",
-    }),
-  });
+    };
+    app.fetch(
+      new Request(new URL("/api/channels", "http://localhost"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization:
+            "Basic " +
+            btoa(adminUsername + ":" + Deno.env.get("ADMIN_PASSWORD")!),
+        },
+        body: JSON.stringify(initialChannel),
+      }),
+      Deno.env.toObject()
+    );
+  }
 }
+
+init();
 
 serve(corsHandler(handler), { port: 11733 });

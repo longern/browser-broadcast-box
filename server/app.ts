@@ -1,4 +1,4 @@
-import { Hono } from "./deps.ts";
+import { Hono, basicAuth } from "./deps.ts";
 
 type Channel = {
   id: string;
@@ -9,6 +9,19 @@ type Channel = {
 
 const app = new Hono();
 const channels: Channel[] = [];
+
+app.use("/api/*", async (c, next) => {
+  if (
+    !c.env?.ADMIN_PASSWORD ||
+    !["POST", "PATCH", "DELETE"].includes(c.req.method) ||
+    c.req.path === "/api/whep"
+  ) {
+    return next();
+  }
+  const username = (c.env?.ADMIN_USERNAME as string) || "admin";
+  const password = c.env.ADMIN_PASSWORD as string;
+  await basicAuth({ username, password })(c, next);
+});
 
 app.get("/api/channels", (c) => {
   const live = c.req.query("live");

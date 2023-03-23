@@ -3,8 +3,6 @@ const resources = {};
 let stream = null;
 let channel = {
   resource: null,
-  title: null,
-  thumbnail: null,
   liveViewers: 0,
 };
 const videoElement = document.createElement("video");
@@ -57,24 +55,6 @@ async function handleWhipEndpoint(req) {
     channel.resource = resourceId;
     // Force audio decoding otherwise the audio will be silent.
     videoElement.srcObject = stream;
-    // Generate a thumbnail for the stream.
-    const listener = videoElement.addEventListener("canplay", async () => {
-      videoElement.removeEventListener("canplay", listener);
-      await videoElement.play();
-
-      const canvas = document.createElement("canvas");
-      const context = canvas.getContext("2d");
-      if (videoElement.videoWidth > videoElement.videoHeight) {
-        canvas.width = 320;
-        canvas.height = 180;
-        context.drawImage(videoElement, 0, 0, 320, 180);
-      } else {
-        canvas.width = 180;
-        canvas.height = 320;
-        context.drawImage(videoElement, 0, 0, 180, 320);
-      }
-      channel.thumbnail = canvas.toDataURL();
-    });
   });
 
   peerConnection.addEventListener("datachannel", (event) => {
@@ -82,10 +62,6 @@ async function handleWhipEndpoint(req) {
     dataChannel.addEventListener("message", (event) => {
       const message = event.data;
       console.log(`Received message from ${resourceId}:`, message);
-      const { type, body } = JSON.parse(message);
-      if (type === "meta") {
-        channel.title = body.title;
-      }
     });
     resources[resourceId].dataChannel = dataChannel;
     dataChannel.send(
@@ -104,8 +80,6 @@ async function handleWhipEndpoint(req) {
         peerConnection.removeEventListener("connectionstatechange", csListener);
         delete resources[resourceId];
         channel.resource = null;
-        channel.title = null;
-        channel.thumbnail = null;
         channel.liveViewers = 0;
       }
     }
@@ -116,6 +90,7 @@ async function handleWhipEndpoint(req) {
   peerConnection.setLocalDescription(answer);
   answer = await waitToCompleteICEGathering(peerConnection);
   if (environ.PUBLIC_IP) {
+    // Replace local mDNS hostname with public IP.
     answer.sdp = answer.sdp.replace(/[A-Za-z0-9-]+\.local/g, environ.PUBLIC_IP);
   }
 
@@ -255,8 +230,6 @@ async function handleChannels(req) {
   if (channel.resource) {
     channels.push({
       id: channel.resource,
-      title: channel.title || "Untitled",
-      thumbnail: channel.thumbnail,
     });
   }
 
