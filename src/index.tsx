@@ -14,35 +14,38 @@ const darkTheme = createTheme({ palette: { mode: "dark" } });
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
 
-function Root() {
+function Router() {
   const hash = typeof window !== "undefined" ? window.location.hash : "";
   const [path, setPath] = React.useState(hash);
 
   function checkPath() {
     if (window.location.hash === path) return;
     setPath(window.location.hash);
-    root.render(<Root />);
   }
   window.addEventListener("hashchange", checkPath);
   window.addEventListener("popstate", checkPath);
 
+  return path === "#ingest" ? (
+    <Suspense>
+      <IngestApp />
+    </Suspense>
+  ) : path === "#studio" ? (
+    <Suspense>
+      <IngestDesktopApp />
+    </Suspense>
+  ) : path === "#watch" ? (
+    <EgressApp />
+  ) : (
+    <IndexApp />
+  );
+}
+
+function Root() {
   return (
     <React.StrictMode>
       <ThemeProvider theme={darkTheme}>
         <CssBaseline />
-        {path === "#ingest" ? (
-          <Suspense>
-            <IngestApp />
-          </Suspense>
-        ) : path === "#studio" ? (
-          <Suspense>
-            <IngestDesktopApp />
-          </Suspense>
-        ) : path === "#watch" ? (
-          <EgressApp />
-        ) : (
-          <IndexApp />
-        )}
+        <Router />
       </ThemeProvider>
     </React.StrictMode>
   );

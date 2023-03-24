@@ -109,6 +109,8 @@ function IngestApp() {
                 thumbnail: canvas.toDataURL("image/jpeg", 0.5),
               }),
             });
+          } else if (this.connectionState === "failed") {
+            window.alert("Cannot connect to server");
           }
         }
       );
