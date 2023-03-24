@@ -10,4 +10,4 @@ export {
 
 export { Hono } from "https://deno.land/x/hono@v3.1.2/mod.ts";
 
-export { basicAuth } from "https://deno.land/x/hono@v3.1.2/middleware.ts";
+export { basicAuth, cors } from "https://deno.land/x/hono@v3.1.2/middleware.ts";

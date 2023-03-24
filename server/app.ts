@@ -1,4 +1,4 @@
-import { Hono, basicAuth } from "./deps.ts";
+import { Hono, basicAuth, cors } from "./deps.ts";
 
 type Channel = {
   id: string;
@@ -9,6 +9,8 @@ type Channel = {
 
 const app = new Hono();
 const channels: Channel[] = [];
+
+app.use("/api/*", cors());
 
 app.use("/api/*", async (c, next) => {
   if (

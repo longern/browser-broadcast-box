@@ -8,11 +8,6 @@ app.post("/api/:endpoint{whip|whep}", (c) => {
 });
 
 async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
-  // Handle OPTIONS request
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204 });
-  }
-
   const upgrade = req.headers.get("upgrade") || "";
   if (upgrade.toLowerCase() === "websocket") {
     return websocketHandler(req, connInfo);
@@ -72,21 +67,6 @@ async function detectPublicIp() {
   }
 }
 
-function corsHandler(
-  handler: (req: Request, connInfo: ConnInfo) => Promise<Response>
-) {
-  return async (req: Request, connInfo: ConnInfo) => {
-    const response = await handler(req, connInfo);
-    if (response.status === 101) return response;
-    const newResponse = new Response(response.body, response);
-    newResponse.headers.set("Access-Control-Allow-Origin", "*");
-    newResponse.headers.set("Access-Control-Allow-Methods", "*");
-    newResponse.headers.set("Access-Control-Allow-Headers", "*");
-    newResponse.headers.set("Access-Control-Expose-Headers", "*");
-    return newResponse;
-  };
-}
-
 async function init() {
   if (!Deno.env.get("PUBLIC_IP")) {
     const publicIp = await detectPublicIp();
@@ -106,6 +86,7 @@ async function init() {
   }
 
   if (Deno.env.get("ADMIN_PASSWORD")) {
+    console.log("ADMIN_PASSWORD is set");
     const adminUsername = Deno.env.get("ADMIN_USERNAME") || "admin";
     const initialChannel = {
       id: adminUsername,
@@ -130,4 +111,4 @@ async function init() {
 
 init();
 
-serve(corsHandler(handler), { port: 11733 });
+serve(handler, { port: 11733 });
