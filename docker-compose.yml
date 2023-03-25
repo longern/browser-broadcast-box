@@ -1,0 +1,15 @@
+version: "3"
+services:
+  backend:
+    build: .
+    ports:
+      - "11733:11733"
+    networks:
+      - default
+  chrome:
+    image: zenika/alpine-chrome:108
+    command: chromium-browser --headless --no-sandbox --remote-debugging-port=0 http://backend:11733/backend/?s=backend:11733
+    networks:
+      - default
+    depends_on:
+      - backend

@@ -1,4 +1,5 @@
-import { Hono, bearerAuth, cors } from "./deps.ts";
+import { Hono } from "hono";
+import { bearerAuth, cors } from "./deps.ts";
 
 type Channel = {
   id: string;

@@ -9,8 +9,30 @@ const videoElement = document.createElement("video");
 videoElement.muted = true;
 
 const searchParams = new URLSearchParams(location.search);
-const port = searchParams.get("port") || 11733;
-const ws = new WebSocket(`ws://127.0.0.1:${port}`);
+const socket = searchParams.get("s") || "127.0.0.1:11733";
+const ws = new WebSocket(`ws://${socket}`);
+
+function randomUUID() {
+  let array = new Uint8Array(16);
+  window.crypto.getRandomValues(array);
+  array[6] = (array[6] & 0x0f) | 0x40;
+  array[8] = (array[8] & 0x3f) | 0x80;
+  let uuid = "";
+  for (let i = 0; i < array.length; i++) {
+    uuid += ("0" + array[i].toString(16)).slice(-2);
+  }
+  return (
+    uuid.substr(0, 8) +
+    "-" +
+    uuid.substr(8, 4) +
+    "-" +
+    uuid.substr(12, 4) +
+    "-" +
+    uuid.substr(16, 4) +
+    "-" +
+    uuid.substr(20)
+  );
+}
 
 /** @param {RTCPeerConnection} peerConnection */
 function waitToCompleteICEGathering(peerConnection) {
@@ -47,7 +69,7 @@ async function handleWhipEndpoint(req) {
 
   const offer = await req.text();
   const peerConnection = new RTCPeerConnection();
-  const resourceId = crypto.randomUUID();
+  const resourceId = randomUUID();
   resources[resourceId] = { peerConnection, dataChannel: null };
 
   peerConnection.addEventListener("track", (event) => {
@@ -67,7 +89,7 @@ async function handleWhipEndpoint(req) {
     dataChannel.send(
       JSON.stringify({
         type: "message",
-        id: crypto.randomUUID(),
+        id: randomUUID(),
         body: "Connected to media server",
       })
     );
@@ -182,7 +204,7 @@ async function handleWhepEndpoint(req) {
     answer.sdp = answer.sdp.replace(/[A-Za-z0-9-]+\.local/g, environ.PUBLIC_IP);
   }
 
-  const resourceId = crypto.randomUUID();
+  const resourceId = randomUUID();
   resources[resourceId] = { peerConnection, dataChannel: null };
   channel.liveViewers++;
   sendLiveViewers(channel.resource);

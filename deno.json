@@ -1,0 +1,10 @@
+{
+  "tasks": {
+    "dev": "DEBUG=1 deno run -A server/main.ts",
+    "prod": "deno run -A server/main.ts"
+  },
+  "imports": {
+    "hono": "https://deno.land/x/hono@v3.1.2/mod.ts"
+  },
+  "lock": false
+}
