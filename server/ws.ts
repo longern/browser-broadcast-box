@@ -19,14 +19,11 @@ const logger = {
 };
 
 export function websocketHandler(req: Request): Response {
-  const connectingIp = req.headers.get("CF-Connecting-IP");
-  const host = req.headers.get("Host");
-  const isDockerIp = connectingIp?.match(/^172\.(1[6-9]|2[0-9]|3[0-1])\./);
-  if (
-    connectingIp !== "127.0.0.1" &&
-    !(host === "backend:11733" && isDockerIp)
-  ) {
-    console.log("Not allowed", connectingIp, host);
+  const connectingIp = req.headers.get("CF-Connecting-IP")!;
+  const whitelist = (Deno.env.get("WEBSOCKET_WHITELIST") || "").split(",");
+  whitelist.push("127.0.0.1");
+  if (!whitelist.includes(connectingIp)) {
+    console.log("Not allowed", connectingIp);
     return new Response("Not Allowed", { status: 403 });
   }
 

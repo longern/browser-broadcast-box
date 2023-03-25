@@ -6,10 +6,21 @@ services:
       - "11733:11733"
     networks:
       - default
+    environment:
+      - WEBSOCKET_WHITELIST=172.20.0.3
   chrome:
     image: zenika/alpine-chrome:108
     command: chromium-browser --headless --no-sandbox --remote-debugging-port=0 http://backend:11733/backend/?s=backend:11733
     networks:
-      - default
+      default:
+        ipv4_address: 172.20.0.3
+
     depends_on:
       - backend
+
+networks:
+  default:
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
