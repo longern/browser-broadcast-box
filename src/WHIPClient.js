@@ -6,7 +6,9 @@ import negotiateConnectionWithClientOffer from "./negotiateConnectionWithClientO
  * https://www.ietf.org/archive/id/draft-ietf-wish-whip-01.html
  */
 export default class WHIPClient {
-  constructor(endpoint, mediaStream) {
+  constructor(endpoint, mediaStream, options) {
+    options = options || {};
+
     this.endpoint = endpoint;
     /**
      * Create a new WebRTC connection, using public STUN servers with ICE,
@@ -23,15 +25,17 @@ export default class WHIPClient {
     });
 
     const transceivers = this.peerConnection.getTransceivers();
-    transceivers.forEach((transceiver) => {
-      const kind = transceiver.sender.track.kind;
-      let sendCodecs = RTCRtpSender.getCapabilities(kind).codecs;
+    if (options.preferredCodec) {
+      transceivers.forEach((transceiver) => {
+        const kind = transceiver.sender.track.kind;
+        let sendCodecs = RTCRtpSender.getCapabilities(kind).codecs;
 
-      if (kind === "video") {
-        sendCodecs = preferCodec(sendCodecs, "video/VP9");
-        transceiver.setCodecPreferences(sendCodecs);
-      }
-    });
+        if (kind === "video") {
+          sendCodecs = preferCodec(sendCodecs, options.preferredCodec);
+          transceiver.setCodecPreferences(sendCodecs);
+        }
+      });
+    }
 
     this.dataChannel = this.peerConnection.createDataChannel("whip");
     this.dataChannel.addEventListener("open", () => {
@@ -49,7 +53,8 @@ export default class WHIPClient {
       try {
         this.resourceURL = await negotiateConnectionWithClientOffer(
           this.peerConnection,
-          this.endpoint
+          this.endpoint,
+          { authToken: options.authToken }
         );
       } catch (err) {
         window.alert(err);

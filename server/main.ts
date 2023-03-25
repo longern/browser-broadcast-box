@@ -1,45 +1,47 @@
-import { ConnInfo, serve, serveDir, serveFile } from "./deps.ts";
+import { ConnInfo, serve, serveStatic } from "./deps.ts";
 
 import app from "./app.ts";
 import { websocketHandler, websocketProxyHandler } from "./ws.ts";
+
+app.get("/", async (c, next) => {
+  if (c.req.header("upgrade")?.toLowerCase() === "websocket")
+    c.res = websocketHandler(c.req.raw);
+  else await next();
+});
+
+app.get("/api/:endpoint{whip|whep}", async (c, next) => {
+  if (c.req.header("accept")?.startsWith("text/html"))
+    return serveStatic({ path: "./server/proxy.html" })(c, next);
+  await next();
+});
 
 app.post("/api/:endpoint{whip|whep}", (c) => {
   return websocketProxyHandler(c.req.raw);
 });
 
+app.get("/backend", (c) => c.redirect("/backend/", 301));
+app.get("/backend/*", serveStatic({ root: "./server" }));
+
+app.get("/*", serveStatic({ root: "./build" }));
+
 async function handler(req: Request, connInfo: ConnInfo): Promise<Response> {
-  const upgrade = req.headers.get("upgrade") || "";
-  if (upgrade.toLowerCase() === "websocket") {
-    return websocketHandler(req, connInfo);
-  }
+  const remoteAddr = connInfo.remoteAddr as Deno.NetAddr;
+  const headers = new Headers(req.headers);
+  headers.set("CF-Connecting-IP", remoteAddr.hostname);
+  const newReq = new Request(req.url, {
+    method: req.method,
+    headers: headers,
+    body: req.body,
+    referrer: req.referrer,
+    referrerPolicy: req.referrerPolicy,
+    mode: req.mode,
+    credentials: req.credentials,
+    cache: req.cache,
+    redirect: req.redirect,
+    integrity: req.integrity,
+  });
 
-  const __dirname = new URL(".", import.meta.url).pathname;
-  const pathname = new URL(req.url).pathname;
-  if (!pathname.startsWith("/api")) {
-    if (pathname === "/backend")
-      return new Response(null, {
-        status: 301,
-        headers: { Location: "/backend/" },
-      });
-
-    if (pathname.startsWith("/backend/")) {
-      return serveDir(req, {
-        fsRoot: `${__dirname}backend`,
-        urlRoot: "backend",
-      });
-    }
-    return serveDir(req, { fsRoot: "./build" });
-  }
-
-  if (
-    (pathname === "/api/whip" || pathname === "/api/whep") &&
-    req.method === "GET" &&
-    req.headers.get("accept")?.startsWith("text/html")
-  ) {
-    return serveFile(req, `${__dirname}proxy.html`);
-  }
-
-  return app.fetch(req, Deno.env.toObject());
+  return await app.fetch(newReq, Deno.env.toObject());
 }
 
 async function detectPublicIp() {
@@ -71,41 +73,6 @@ async function init() {
   if (!Deno.env.get("PUBLIC_IP")) {
     const publicIp = await detectPublicIp();
     if (publicIp) Deno.env.set("PUBLIC_IP", publicIp);
-  }
-
-  if (Deno.env.get("HEADLESS_CHROMIUM")) {
-    Deno.run({
-      cmd: [
-        "chromium-browser",
-        "--headless",
-        "--no-sandbox",
-        "--remote-debugging-port=0",
-        Deno.env.get("HEADLESS_CHROMIUM")!,
-      ],
-    });
-  }
-
-  if (Deno.env.get("ADMIN_PASSWORD")) {
-    console.log("ADMIN_PASSWORD is set");
-    const adminUsername = Deno.env.get("ADMIN_USERNAME") || "admin";
-    const initialChannel = {
-      id: adminUsername,
-      title: "",
-      thumbnail: "",
-    };
-    app.fetch(
-      new Request(new URL("/api/channels", "http://localhost"), {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization:
-            "Basic " +
-            btoa(adminUsername + ":" + Deno.env.get("ADMIN_PASSWORD")!),
-        },
-        body: JSON.stringify(initialChannel),
-      }),
-      Deno.env.toObject()
-    );
   }
 }
 

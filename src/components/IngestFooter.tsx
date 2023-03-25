@@ -1,13 +1,18 @@
 import SettingsIcon from "@mui/icons-material/Settings";
 import { Button, Dialog, DialogContent, IconButton } from "@mui/material";
-import { useContext, useState } from "react";
+import { useState } from "react";
 
 import Messages from "./Messages";
-import { MessagesContext } from "../contexts/MessagesContext";
+import type { Message } from "./Messages";
 
-export default function Footer({ onStopClick = () => {} }) {
+export default function Footer({
+  messages,
+  onStopClick = () => {},
+}: {
+  messages: Message[];
+  onStopClick?: () => void;
+}) {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const messages = useContext(MessagesContext);
 
   return (
     <div

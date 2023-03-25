@@ -16,11 +16,7 @@ import {
 } from "@mui/material";
 import EgressForm from "./components/EgressForm";
 import VideoStream from "./IngestDesktop/VideoStream";
-import {
-  MessagesContext,
-  SetMessagesContext,
-} from "./contexts/MessagesContext";
-import type { Message } from "./contexts/MessagesContext";
+import type { Message } from "./components/Messages";
 
 import WHEPClient from "./WHEPClient";
 import Messages from "./components/Messages";
@@ -297,34 +293,30 @@ function EgressApp() {
 
   return (
     <div className="App">
-      <MessagesContext.Provider value={messages}>
-        <SetMessagesContext.Provider value={setMessages}>
-          <Dialog open={dialogOpen} fullWidth>
-            <DialogContent>
-              <EgressForm onWatchStream={handleWatchStream} />
-            </DialogContent>
-          </Dialog>
-          {mediaQuery ? (
-            <EgressDesktop
-              stream={stream}
-              messages={messages}
-              handleChatInput={handleChatInput}
-            />
-          ) : videoSize.width < videoSize.height ? (
-            <EgressMobilePortraitStream
-              stream={stream}
-              messages={messages}
-              handleChatInput={handleChatInput}
-            />
-          ) : (
-            <EgressMobileLandscapeStream
-              stream={stream}
-              messages={messages}
-              handleChatInput={handleChatInput}
-            />
-          )}
-        </SetMessagesContext.Provider>
-      </MessagesContext.Provider>
+      <Dialog open={dialogOpen} fullWidth>
+        <DialogContent>
+          <EgressForm onWatchStream={handleWatchStream} />
+        </DialogContent>
+      </Dialog>
+      {mediaQuery ? (
+        <EgressDesktop
+          stream={stream}
+          messages={messages}
+          handleChatInput={handleChatInput}
+        />
+      ) : videoSize.width < videoSize.height ? (
+        <EgressMobilePortraitStream
+          stream={stream}
+          messages={messages}
+          handleChatInput={handleChatInput}
+        />
+      ) : (
+        <EgressMobileLandscapeStream
+          stream={stream}
+          messages={messages}
+          handleChatInput={handleChatInput}
+        />
+      )}
     </div>
   );
 }

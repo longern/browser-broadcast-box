@@ -1,14 +1,11 @@
-import React, { useState } from "react";
-
+import React, { useEffect, useState } from "react";
+import { Box } from "@mui/system";
 import { Dialog, DialogContent } from "@mui/material";
+
 import IngestFooter from "./components/IngestFooter";
 import IngestForm from "./components/IngestForm";
 import VideoStream from "./IngestDesktop/VideoStream";
-import {
-  MessagesContext,
-  SetMessagesContext,
-} from "./contexts/MessagesContext";
-import { Box } from "@mui/system";
+import WHIPClient from "./WHIPClient";
 
 function IngestApp() {
   const [open, setOpen] = useState(true);
@@ -17,6 +14,7 @@ function IngestApp() {
   const [views, setViews] = useState(0);
 
   const videoRef = React.useRef<HTMLVideoElement>(null);
+  const client = React.useRef<WHIPClient | null>(null);
 
   async function handleDeviceChange(deviceId: string | null) {
     if (stream) {
@@ -61,138 +59,152 @@ function IngestApp() {
 
   async function handleStartStream(options: {
     liveUrl: string;
+    authToken?: string;
     title?: string;
   }) {
-    const { liveUrl, title } = options;
-    import("./WHIPClient").then((WHIPClientModule) => {
-      const WHIPClient = WHIPClientModule.default;
-      const client = new WHIPClient(liveUrl, stream);
-      setOpen(false);
+    const { liveUrl, authToken, title } = options;
+    client.current = new WHIPClient(liveUrl, stream, {
+      authToken,
+      preferredCodec: "video/VP9",
+    });
+    setOpen(false);
 
-      client.peerConnection.addEventListener(
-        "icegatheringstatechange",
-        (_ev) => {
-          if (client.peerConnection.iceGatheringState !== "complete") return;
-          client.peerConnection.getSenders().forEach((sender) => {
-            if (sender.track?.kind === "video") {
-              const parameters = sender.getParameters();
-              parameters.encodings[0].maxBitrate = 5000000;
-              sender.setParameters(parameters);
-            }
-          });
-        }
-      );
-
-      client.peerConnection.addEventListener(
-        "connectionstatechange",
-        function () {
-          if (this.connectionState === "connected") {
-            const canvas = document.createElement("canvas");
-            const context = canvas.getContext("2d");
-            const videoElement = videoRef.current!;
-            if (videoElement.videoWidth > videoElement.videoHeight) {
-              canvas.width = 320;
-              canvas.height = 180;
-              context!.drawImage(videoElement, 0, 0, 320, 180);
-            } else {
-              canvas.width = 180;
-              canvas.height = 320;
-              context!.drawImage(videoElement, 0, 0, 180, 320);
-            }
-
-            fetch("/api/channels/admin", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                live: true,
-                title,
-                thumbnail: canvas.toDataURL("image/jpeg", 0.5),
-              }),
-            });
-          } else if (this.connectionState === "failed") {
-            window.alert("Cannot connect to server");
+    client.current.peerConnection.addEventListener(
+      "icegatheringstatechange",
+      function () {
+        if (this.iceGatheringState !== "complete") return;
+        this.getSenders().forEach((sender) => {
+          if (sender.track?.kind === "video") {
+            const parameters = sender.getParameters();
+            parameters.encodings[0].maxBitrate = 5000000;
+            sender.setParameters(parameters);
           }
-        }
-      );
+        });
+      }
+    );
 
-      client.dataChannel.addEventListener("message", (ev) => {
-        const data = JSON.parse(ev.data);
-        const { type, id, body } = data;
-        if (type === "message") {
-          setMessages((messages) => {
-            const newMessages = [{ id, content: body }, ...messages];
-            if (newMessages.length > 1000) newMessages.pop();
-            return newMessages;
+    client.current.peerConnection.addEventListener(
+      "connectionstatechange",
+      function () {
+        if (this.connectionState === "connected") {
+          const canvas = document.createElement("canvas");
+          const context = canvas.getContext("2d");
+          const videoElement = videoRef.current!;
+          if (videoElement.videoWidth > videoElement.videoHeight) {
+            canvas.width = 320;
+            canvas.height = 180;
+            context!.drawImage(videoElement, 0, 0, 320, 180);
+          } else {
+            canvas.width = 180;
+            canvas.height = 320;
+            context!.drawImage(videoElement, 0, 0, 180, 320);
+          }
+
+          const headers = new Headers();
+          headers.set("Content-Type", "application/json");
+          if (authToken) headers.set("Authorization", `Bearer ${authToken}`);
+          fetch("/api/channels", {
+            method: "PUT",
+            headers,
+            body: JSON.stringify({
+              id: "me",
+              live: true,
+              title,
+              thumbnail: canvas.toDataURL("image/jpeg", 0.5),
+            }),
           });
-        } else if (data.type === "views") {
-          setViews(+body);
+        } else if (this.connectionState === "failed") {
+          window.alert("Cannot connect to server");
         }
-      });
+      }
+    );
 
-      client.dataChannel.addEventListener("open", () => {
-        client.dataChannel.send(
-          JSON.stringify({
-            type: "meta",
-            id: crypto.randomUUID(),
-            body: { title },
-          })
-        );
-      });
+    client.current.dataChannel.addEventListener("message", (ev) => {
+      const data = JSON.parse(ev.data);
+      const { type, id, body } = data;
+      if (type === "message") {
+        setMessages((messages) => {
+          const newMessages = [{ id, content: body }, ...messages];
+          if (newMessages.length > 1000) newMessages.pop();
+          return newMessages;
+        });
+      } else if (data.type === "views") {
+        setViews(+body);
+      }
+    });
+
+    client.current.dataChannel.addEventListener("open", function () {
+      this.send(
+        JSON.stringify({
+          type: "meta",
+          id: crypto.randomUUID(),
+          body: { title },
+        })
+      );
     });
   }
+
+  useEffect(() => {
+    return () => {
+      if (client.current) {
+        client.current.disconnectStream();
+        client.current = null;
+      }
+    };
+  });
 
   async function handleStopStream() {
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
+    }
+    if (client.current) {
+      client.current.disconnectStream();
+      client.current = null;
     }
     setOpen(true);
   }
 
   return (
     <div className="App">
-      <MessagesContext.Provider value={messages}>
-        <SetMessagesContext.Provider value={setMessages}>
-          <Dialog open={open} fullWidth>
-            <DialogContent>
-              <IngestForm
-                onDeviceChange={handleDeviceChange}
-                onStartStream={handleStartStream}
-              />
-            </DialogContent>
-          </Dialog>
-          <VideoStream
-            ref={videoRef}
-            stream={stream}
-            autoPlay
-            playsInline
-            muted
-            style={{
-              position: "absolute",
-              width: "100%",
-              height: "100%",
-              objectFit: "contain",
-              zIndex: -1,
-            }}
+      <Dialog open={open} fullWidth>
+        <DialogContent>
+          <IngestForm
+            onDeviceChange={handleDeviceChange}
+            onStartStream={handleStartStream}
           />
-          <Box
-            sx={{
-              position: "absolute",
-              top: 8,
-              right: 8,
-              width: 32,
-              height: 32,
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              borderRadius: 9999,
-              backgroundColor: "rgba(127, 127, 127, 0.5)",
-            }}
-          >
-            {views}
-          </Box>
-          <IngestFooter onStopClick={handleStopStream} />
-        </SetMessagesContext.Provider>
-      </MessagesContext.Provider>
+        </DialogContent>
+      </Dialog>
+      <VideoStream
+        ref={videoRef}
+        stream={stream}
+        autoPlay
+        playsInline
+        muted
+        style={{
+          position: "absolute",
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
+          zIndex: -1,
+        }}
+      />
+      <Box
+        sx={{
+          position: "absolute",
+          top: 8,
+          right: 8,
+          width: 32,
+          height: 32,
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          borderRadius: 9999,
+          backgroundColor: "rgba(127, 127, 127, 0.5)",
+        }}
+      >
+        {views}
+      </Box>
+      <IngestFooter messages={messages} onStopClick={handleStopStream} />
     </div>
   );
 }

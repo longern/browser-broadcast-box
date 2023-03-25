@@ -12,7 +12,10 @@
  */
 export default async function negotiateConnectionWithClientOffer(
   peerConnection: RTCPeerConnection,
-  endpoint: string | URL
+  endpoint: string | URL,
+  options?: {
+    authToken?: string;
+  }
 ) {
   /** https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection/createOffer */
   const offer = await peerConnection.createOffer();
@@ -29,7 +32,10 @@ export default async function negotiateConnectionWithClientOffer(
    * This specifies how the client should communicate,
    * and what kind of media client and server have negotiated to exchange.
    */
-  let response = await postSDPOffer(endpoint, ofr.sdp);
+  let response = await postSDPOffer(endpoint, ofr.sdp, {
+    authToken: options?.authToken,
+    httpPopupProxy: true,
+  });
   if (response.status <= 299) {
     let answerSDP = await response.text();
     await peerConnection.setRemoteDescription(
@@ -60,61 +66,73 @@ export default async function negotiateConnectionWithClientOffer(
   }
 }
 
-async function postSDPOffer(endpoint: string | URL, data: string) {
+async function postSDPOffer(
+  endpoint: string | URL,
+  data: string,
+  options?: {
+    authToken?: string;
+    httpPopupProxy?: boolean;
+  }
+) {
+  const headers = new Headers();
+  headers.set("content-type", "application/sdp");
+  if (options?.authToken) {
+    headers.set("Authorization", `Bearer ${options.authToken}`);
+  }
   const request = new Request(endpoint, {
     method: "POST",
     mode: "cors",
-    headers: { "content-type": "application/sdp" },
+    headers,
     body: data,
   });
 
   const url = new URL(request.url);
-  if (window.location.protocol === "https:") {
-    if (
-      url.protocol === "http:" &&
-      !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
-    ) {
-      const response = await new Promise<Response>((resolve, reject) => {
-        // Create popup window
-        const popup = window.open(url, "_blank");
-        if (!popup) {
-          reject(new Error("Failed to open popup"));
-          return;
+  if (
+    options?.httpPopupProxy &&
+    window.location.protocol === "https:" &&
+    url.protocol === "http:" &&
+    !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
+  ) {
+    const response = await new Promise<Response>((resolve, reject) => {
+      // Create popup window
+      const popup = window.open(url, "_blank");
+      if (!popup) {
+        reject(new Error("Failed to open popup"));
+        return;
+      }
+
+      const intervalId = setInterval(() => {
+        if (popup.closed) reject(new Error("Popup closed"));
+      }, 1000);
+
+      window.addEventListener("message", async (event) => {
+        const { data, origin } = event;
+        if (origin !== url.origin) return;
+
+        if (data.type === "event" && data.event === "load") {
+          popup.postMessage(
+            {
+              type: "request",
+              url: request.url,
+              method: request.method,
+              headers: Object.fromEntries(request.headers),
+              body: await request.text(),
+            },
+            url.origin
+          );
+        } else if (data.type === "response") {
+          clearInterval(intervalId);
+          popup.close();
+          const response = new Response(data.body, {
+            status: data.status,
+            statusText: data.statusText,
+            headers: data.headers,
+          });
+          resolve(response);
         }
-
-        const intervalId = setInterval(() => {
-          if (popup.closed) reject(new Error("Popup closed"));
-        }, 1000);
-
-        window.addEventListener("message", async (event) => {
-          const { data, origin } = event;
-          if (origin !== url.origin) return;
-
-          if (data.type === "event" && data.event === "load") {
-            popup.postMessage(
-              {
-                type: "request",
-                url: request.url,
-                method: request.method,
-                headers: Object.fromEntries(request.headers),
-                body: await request.text(),
-              },
-              url.origin
-            );
-          } else if (data.type === "response") {
-            clearInterval(intervalId);
-            popup.close();
-            const response = new Response(data.body, {
-              status: data.status,
-              statusText: data.statusText,
-              headers: data.headers,
-            });
-            resolve(response);
-          }
-        });
       });
-      return response;
-    }
+    });
+    return response;
   }
 
   return fetch(request);

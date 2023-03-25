@@ -9,9 +9,18 @@ const handlerMap: Record<
   }) => void
 > = {};
 
-export function websocketHandler(req: Request, connInfo: ConnInfo): Response {
-  const remoteAddr = connInfo.remoteAddr as Deno.NetAddr;
-  if (remoteAddr.hostname !== "127.0.0.1") {
+const logger = {
+  log(...args: any[]) {
+    const time = new Date().toLocaleTimeString([], {
+      hour12: false,
+    });
+    console.log(`[${time}]`, ...args);
+  },
+};
+
+export function websocketHandler(req: Request): Response {
+  const connectingIp = req.headers.get("CF-Connecting-IP");
+  if (connectingIp !== "127.0.0.1") {
     return new Response("Not Allowed", { status: 403 });
   }
 
@@ -24,11 +33,8 @@ export function websocketHandler(req: Request, connInfo: ConnInfo): Response {
     const env: Record<string, string> = {};
     const envPublicIp = Deno.env.get("PUBLIC_IP");
     if (envPublicIp) env.PUBLIC_IP = envPublicIp;
-    const envAdminPassword = Deno.env.get("ADMIN_PASSWORD");
-    if (envAdminPassword) env.ADMIN_PASSWORD = envAdminPassword;
     socket.send(JSON.stringify({ type: "env", items: env }));
-    const remoteSocket = `${remoteAddr.hostname}:${remoteAddr.port}`;
-    console.log(`Backend socket ${remoteSocket} connected`);
+    logger.log("Backend socket connected");
   };
   socket.onmessage = (e) => {
     try {
@@ -38,11 +44,11 @@ export function websocketHandler(req: Request, connInfo: ConnInfo): Response {
         delete handlerMap[data.id];
       }
     } catch (e) {
-      console.log(e);
+      logger.log(e);
     }
   };
   socket.onerror = (e) =>
-    console.log("socket errored:", (<ErrorEvent>e).message);
+    logger.log("socket errored:", (<ErrorEvent>e).message);
   socket.onclose = () => (globalSocket = null);
   globalSocket = socket;
   return response;

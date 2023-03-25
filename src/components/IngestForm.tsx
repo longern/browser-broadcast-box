@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 let permissionGranted = false;
 const isMobile =
@@ -26,9 +26,14 @@ export default function IngestForm({
   onStartStream,
 }: {
   onDeviceChange?: (deviceId: string | null) => Promise<void>;
-  onStartStream?: (options: { liveUrl: string; title: string }) => void;
+  onStartStream?: (options: {
+    liveUrl: string;
+    authToken?: string;
+    title?: string;
+  }) => void;
 }) {
   const [liveUrl, setLiveUrl] = useState("");
+  const [authToken, setAuthToken] = useState("");
   const [title, setTitle] = useState("Welcome!");
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDevice, setSelectedDevice] = useState("none");
@@ -96,6 +101,34 @@ export default function IngestForm({
             ),
           }}
         ></TextField>
+        {/* Hidden input username for save password */}
+        <input
+          type="text"
+          name="username"
+          hidden
+          value="default"
+          readOnly
+          autoComplete="username"
+        />
+        <TextField
+          id="auth-token"
+          value={authToken}
+          label="Auth Token"
+          size="small"
+          type={"password"}
+          onChange={(e) => setAuthToken(e.target.value)}
+          InputProps={{
+            endAdornment: (
+              <IconButton
+                sx={{ visibility: authToken ? "visible" : "hidden" }}
+                onClick={() => setAuthToken("")}
+                edge="end"
+              >
+                <CloseIcon />
+              </IconButton>
+            ),
+          }}
+        ></TextField>
         <TextField
           id="title"
           value={title}
@@ -142,7 +175,7 @@ export default function IngestForm({
         <Button
           variant="contained"
           disabled={!validate()}
-          onClick={() => onStartStream?.({ liveUrl, title })}
+          onClick={() => onStartStream?.({ liveUrl, authToken, title })}
         >
           Start
         </Button>

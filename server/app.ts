@@ -1,4 +1,4 @@
-import { Hono, basicAuth, cors } from "./deps.ts";
+import { Hono, bearerAuth, cors } from "./deps.ts";
 
 type Channel = {
   id: string;
@@ -12,29 +12,14 @@ const channels: Channel[] = [];
 
 app.use("/api/*", cors());
 
-app.use("/api/*", async (c, next) => {
+app.use("/api/whip", (c, next) => {
   if (
-    !c.env?.ADMIN_PASSWORD ||
+    !c.env?.BEARER_TOKEN ||
     !["POST", "PATCH", "DELETE"].includes(c.req.method) ||
     c.req.path === "/api/whep"
-  ) {
+  )
     return next();
-  }
-  const username = (c.env?.ADMIN_USERNAME as string) || "admin";
-  const password = c.env.ADMIN_PASSWORD as string;
-  await basicAuth({ username, password })(c, next);
-});
-
-app.get("/api/users/current", (c) => {
-  try {
-    const auth = c.req.header("Authorization") || "";
-    const userPass = atob(auth.split(" ")[1]);
-    const user = userPass.split(":")[0];
-    return c.json({ id: user });
-  } catch (_err) {
-    c.status(401);
-    return c.json({ error: "Unauthorized" });
-  }
+  return bearerAuth({ token: c.env.BEARER_TOKEN as string })(c, next);
 });
 
 app.get("/api/channels", (c) => {
@@ -61,6 +46,18 @@ app.post("/api/channels", async (c) => {
   };
   channels.push(channel);
   return c.json(channel);
+});
+
+app.put("/api/channels", async (c) => {
+  const reqChannel: Channel = await c.req.json();
+  const findChannel = channels.find((c) => c.id === reqChannel.id);
+  if (findChannel) {
+    Object.assign(findChannel, reqChannel);
+    return c.json(findChannel);
+  } else {
+    channels.push(reqChannel);
+    return c.json(reqChannel);
+  }
 });
 
 app.get("/api/channels/:id", (c) => {
