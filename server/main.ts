@@ -1,4 +1,12 @@
-import { ConnInfo, serve, serveStatic } from "./deps.ts";
+import { ConnInfo, loadSync, serve, serveStatic } from "./deps.ts";
+
+for (const envPath of ["./.env.local", "./.env"]) {
+  try {
+    loadSync({ envPath: envPath, export: true });
+  } catch (_e) {
+    // Ignore
+  }
+}
 
 import app from "./app.ts";
 import { websocketHandler, websocketProxyHandler } from "./ws.ts";
@@ -74,6 +82,8 @@ async function init() {
     const publicIp = await detectPublicIp();
     if (publicIp) Deno.env.set("PUBLIC_IP", publicIp);
   }
+
+  if (Deno.env.get("BEARER_TOKEN")) console.log("Bearer token is set");
 }
 
 init();

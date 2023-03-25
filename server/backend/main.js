@@ -13,7 +13,7 @@ const socket = searchParams.get("s") || "127.0.0.1:11733";
 const ws = new WebSocket(`ws://${socket}`);
 
 function randomUUID() {
-  let array = new Uint8Array(16);
+  const array = new Uint8Array(16);
   window.crypto.getRandomValues(array);
   array[6] = (array[6] & 0x0f) | 0x40;
   array[8] = (array[8] & 0x3f) | 0x80;
@@ -22,15 +22,15 @@ function randomUUID() {
     uuid += ("0" + array[i].toString(16)).slice(-2);
   }
   return (
-    uuid.substr(0, 8) +
+    uuid.substring(0, 8) +
     "-" +
-    uuid.substr(8, 4) +
+    uuid.substring(8, 4) +
     "-" +
-    uuid.substr(12, 4) +
+    uuid.substring(12, 4) +
     "-" +
-    uuid.substr(16, 4) +
+    uuid.substring(16, 4) +
     "-" +
-    uuid.substr(20)
+    uuid.substring(20)
   );
 }
 
