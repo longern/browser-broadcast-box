@@ -4,7 +4,9 @@
     "prod": "deno run -A server/main.ts"
   },
   "imports": {
-    "hono": "https://deno.land/x/hono@v3.1.2/mod.ts"
+    "hono": "https://deno.land/x/hono@v3.1.2/mod.ts",
+    "hono/bearer-auth": "https://deno.land/x/hono@v3.1.2/middleware/bearer-auth/index.ts",
+    "hono/cors": "https://deno.land/x/hono@v3.1.2/middleware/cors/index.ts"
   },
   "lock": false
 }
