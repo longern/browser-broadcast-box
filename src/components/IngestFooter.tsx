@@ -36,7 +36,7 @@ export default function Footer({
           fontSize: "0.8em",
         }}
       ></Messages>
-      <IconButton onClick={() => setSettingsOpen(true)}>
+      <IconButton aria-label="settings" onClick={() => setSettingsOpen(true)}>
         <SettingsIcon />
       </IconButton>
     </div>

@@ -130,7 +130,10 @@ function EgressMobileLandscapeStream({
             autoComplete="off"
             onKeyDown={handleChatInput}
           />
-          <IconButton onClick={() => videoRef.current!.requestFullscreen()}>
+          <IconButton
+            aria-label="fullscreen"
+            onClick={() => videoRef.current!.requestFullscreen()}
+          >
             <Fullscreen />
           </IconButton>
         </Stack>
@@ -214,7 +217,10 @@ function EgressMobilePortraitStream({
               autoComplete="off"
               onKeyDown={handleChatInput}
             />
-            <IconButton onClick={() => videoRef.current!.requestFullscreen()}>
+            <IconButton
+              aria-label="fullscreen"
+              onClick={() => videoRef.current!.requestFullscreen()}
+            >
               <Fullscreen />
             </IconButton>
           </Stack>

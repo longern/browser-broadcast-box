@@ -43,14 +43,14 @@ export default function SourcesCard({
         </List>
         <Box sx={{ p: 0.5 }}>
           <IconButton
-            aria-label="Add source"
+            aria-label="add source"
             size="small"
             onClick={onAddSourceDialogOpen}
           >
             <AddIcon />
           </IconButton>
           <IconButton
-            aria-label="Remove source"
+            aria-label="remove source"
             size="small"
             disabled={!selectedSource}
             onClick={() => {
@@ -64,7 +64,7 @@ export default function SourcesCard({
             <DeleteIcon />
           </IconButton>
           <IconButton
-            aria-label="Move source up"
+            aria-label="move source up"
             size="small"
             disabled={!selectedSource || selectedSource === sources[0]}
             onClick={() => {
@@ -78,7 +78,7 @@ export default function SourcesCard({
             <ArrowUpwardIcon />
           </IconButton>
           <IconButton
-            aria-label="Move source down"
+            aria-label="move source down"
             size="small"
             disabled={
               !selectedSource || selectedSource === sources[sources.length - 1]

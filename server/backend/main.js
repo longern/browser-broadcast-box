@@ -12,26 +12,28 @@ const searchParams = new URLSearchParams(location.search);
 const socket = searchParams.get("s") || "127.0.0.1:11733";
 const ws = new WebSocket(`ws://${socket}`);
 
-function randomUUID() {
-  const array = new Uint8Array(16);
-  window.crypto.getRandomValues(array);
-  array[6] = (array[6] & 0x0f) | 0x40;
-  array[8] = (array[8] & 0x3f) | 0x80;
-  let uuid = "";
-  for (let i = 0; i < array.length; i++) {
-    uuid += ("0" + array[i].toString(16)).slice(-2);
-  }
-  return (
-    uuid.substring(0, 8) +
-    "-" +
-    uuid.substring(8, 4) +
-    "-" +
-    uuid.substring(12, 4) +
-    "-" +
-    uuid.substring(16, 4) +
-    "-" +
-    uuid.substring(20)
-  );
+if (!crypto.randomUUID) {
+  crypto.randomUUID = function () {
+    const array = new Uint8Array(16);
+    window.crypto.getRandomValues(array);
+    array[6] = (array[6] & 0x0f) | 0x40;
+    array[8] = (array[8] & 0x3f) | 0x80;
+    let uuid = "";
+    for (let i = 0; i < array.length; i++) {
+      uuid += ("0" + array[i].toString(16)).slice(-2);
+    }
+    return (
+      uuid.substring(0, 8) +
+      "-" +
+      uuid.substring(8, 4) +
+      "-" +
+      uuid.substring(12, 4) +
+      "-" +
+      uuid.substring(16, 4) +
+      "-" +
+      uuid.substring(20)
+    );
+  };
 }
 
 /** @param {RTCPeerConnection} peerConnection */
@@ -69,7 +71,7 @@ async function handleWhipEndpoint(req) {
 
   const offer = await req.text();
   const peerConnection = new RTCPeerConnection();
-  const resourceId = randomUUID();
+  const resourceId = crypto.randomUUID();
   resources[resourceId] = { peerConnection, dataChannel: null };
 
   peerConnection.addEventListener("track", (event) => {
@@ -89,7 +91,7 @@ async function handleWhipEndpoint(req) {
     dataChannel.send(
       JSON.stringify({
         type: "message",
-        id: randomUUID(),
+        id: crypto.randomUUID(),
         body: "Connected to media server",
       })
     );
@@ -204,7 +206,7 @@ async function handleWhepEndpoint(req) {
     answer.sdp = answer.sdp.replace(/[A-Za-z0-9-]+\.local/g, environ.PUBLIC_IP);
   }
 
-  const resourceId = randomUUID();
+  const resourceId = crypto.randomUUID();
   resources[resourceId] = { peerConnection, dataChannel: null };
   channel.liveViewers++;
   sendLiveViewers(channel.resource);

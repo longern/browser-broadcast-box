@@ -92,6 +92,7 @@ export default function IngestForm({
             endAdornment: (
               <InputAdornment position="end">
                 <IconButton
+                  aria-label="clear live url"
                   sx={{ visibility: liveUrl ? "visible" : "hidden" }}
                   onClick={() => setLiveUrl("")}
                 >
@@ -120,6 +121,7 @@ export default function IngestForm({
           InputProps={{
             endAdornment: (
               <IconButton
+                aria-label="clear auth token"
                 sx={{ visibility: authToken ? "visible" : "hidden" }}
                 onClick={() => setAuthToken("")}
                 edge="end"
@@ -139,6 +141,7 @@ export default function IngestForm({
           InputProps={{
             endAdornment: (
               <IconButton
+                aria-label="clear title"
                 sx={{ visibility: title ? "visible" : "hidden" }}
                 onClick={() => setTitle("")}
                 edge="end"
@@ -168,7 +171,7 @@ export default function IngestForm({
               ))}
             </Select>
           </FormControl>
-          <IconButton onClick={init}>
+          <IconButton aria-label="refresh devices" onClick={init}>
             <RefreshIcon />
           </IconButton>
         </Stack>

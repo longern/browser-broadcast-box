@@ -151,7 +151,7 @@ function IngestApp() {
         client.current = null;
       }
     };
-  });
+  }, []);
 
   async function handleStopStream() {
     if (stream) {

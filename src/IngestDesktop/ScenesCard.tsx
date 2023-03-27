@@ -65,14 +65,14 @@ export default function ScenesCard({
         </List>
         <Stack direction={"row"} sx={{ p: 0.5 }}>
           <IconButton
-            aria-label="Add scene"
+            aria-label="add scene"
             size="small"
             onClick={handleAddScenes}
           >
             <AddIcon />
           </IconButton>
           <IconButton
-            aria-label="Delete scene"
+            aria-label="delete scene"
             size="small"
             disabled={scenes.length === 1}
             onClick={() => handleDeleteScenes(selectedScene)}
