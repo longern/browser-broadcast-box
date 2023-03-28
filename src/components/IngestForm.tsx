@@ -21,6 +21,27 @@ const isMobile =
     navigator.userAgent
   );
 
+async function requestPermission() {
+  if (permissionGranted) return;
+  try {
+    const queryResult = await navigator.permissions.query({
+      name: "camera" as PermissionName,
+    });
+    if (queryResult.state === "granted") {
+      permissionGranted = true;
+      return;
+    }
+  } catch (e) {}
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+    stream.getTracks().forEach((track) => track.stop());
+    permissionGranted = true;
+  } catch (e) {}
+}
+
 export default function IngestForm({
   onDeviceChange,
   onStartStream,
@@ -39,16 +60,7 @@ export default function IngestForm({
   const [selectedDevice, setSelectedDevice] = useState("none");
 
   async function init() {
-    if (!permissionGranted) {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-          audio: true,
-        });
-        stream.getTracks().forEach((track) => track.stop());
-        permissionGranted = true;
-      } catch (e) {}
-    }
+    await requestPermission();
 
     const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
       (device) => device.kind === "videoinput"
@@ -95,6 +107,7 @@ export default function IngestForm({
                   aria-label="clear live url"
                   sx={{ visibility: liveUrl ? "visible" : "hidden" }}
                   onClick={() => setLiveUrl("")}
+                  edge="end"
                 >
                   <CloseIcon />
                 </IconButton>
