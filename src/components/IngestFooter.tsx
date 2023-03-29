@@ -30,7 +30,7 @@ export default function Footer({
         messages={messages}
         messageSx={{
           backgroundColor: "rgba(128, 128, 128, 0.5)",
-          borderRadius: "14px",
+          borderRadius: "16px",
           padding: "0.5em 0.8em",
           marginBottom: "0.5em",
           fontSize: "0.8em",

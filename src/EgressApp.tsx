@@ -130,7 +130,7 @@ function EgressDesktop({
         <Messages messages={messages}></Messages>
         <TextField
           id="chat-input"
-          label="Chat"
+          aria-label="chat input"
           variant="outlined"
           fullWidth
           size="small"
@@ -212,6 +212,7 @@ function EgressMobileLandscapeStream({
         <Stack direction="row">
           <TextField
             id="chat-input"
+            aria-label="chat input"
             variant="outlined"
             fullWidth
             size="small"
@@ -293,6 +294,7 @@ function EgressMobilePortraitStream({
           <Stack direction="row">
             <TextField
               id="chat-input"
+              aria-label="chat input"
               variant="outlined"
               fullWidth
               size="small"

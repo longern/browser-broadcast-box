@@ -24,6 +24,8 @@ export default function Messages({
         overflowY: "auto",
         ...sx,
       }}
+      aria-live="polite"
+      role="log"
     >
       {messages.map((message) => (
         <Box key={message.id} sx={{ ...messageSx }}>
