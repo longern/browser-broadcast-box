@@ -75,8 +75,17 @@ export default class WHEPClient {
         window.alert("Connection closed");
       }
     });
-    this.peerConnection.addEventListener("negotiationneeded", (ev) => {
-      negotiateConnectionWithClientOffer(this.peerConnection, this.endpoint);
+    this.peerConnection.addEventListener("negotiationneeded", async (ev) => {
+      console.log("Connection negotiation starting");
+      try {
+        this.resourceURL = await negotiateConnectionWithClientOffer(
+          this.peerConnection,
+          this.endpoint
+        );
+      } catch (err) {
+        window.alert(err);
+      }
+      console.log("Connection negotiation ended");
     });
   }
 }
