@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
+import { HTTPException } from "hono/http-exception";
 
 type Channel = {
   id: string;
@@ -10,7 +11,6 @@ type Channel = {
 };
 
 const app = new Hono();
-const channels: Channel[] = [];
 
 app.use("/api/*", cors());
 
@@ -24,19 +24,28 @@ app.use("/api/whip", (c, next) => {
   return bearerAuth({ token: c.env.BEARER_TOKEN as string })(c, next);
 });
 
-app.get("/api/channels", (c) => {
+app.get("/api/channels", async (c) => {
   const live = c.req.query("live");
-  if (live) {
-    return c.json({
-      channels: channels.filter((c) => c.live),
-    });
-  }
+  const db = c.env!.DB as any;
+  await db
+    .prepare(
+      "CREATE TABLE IF NOT EXISTS channels (id TEXT PRIMARY KEY, title TEXT, live INTEGER, thumbnail TEXT)"
+    )
+    .run();
+  const stmt = live
+    ? "SELECT id, title, live, thumbnail FROM channels WHERE live = 1"
+    : "SELECT id, title, live, thumbnail FROM channels";
+  const channels = await db.prepare(stmt).all();
   return c.json({ channels });
 });
 
 app.post("/api/channels", async (c) => {
   const { id, title, thumbnail } = await c.req.json();
-  if (channels.find((c) => c.id === id)) {
+  const db = c.env!.DB as any;
+  const count = await db
+    .prepare("INSERT INTO channels VALUES (?, ?, ?, ?)")
+    .first(id, title, 0, thumbnail);
+  if (count === 0) {
     c.status(409);
     return c.json({ error: "Channel already exists" });
   }
@@ -46,26 +55,31 @@ app.post("/api/channels", async (c) => {
     title,
     thumbnail,
   };
-  channels.push(channel);
   return c.json(channel);
 });
 
 app.put("/api/channels", async (c) => {
   const reqChannel: Channel = await c.req.json();
-  const findChannel = channels.find((c) => c.id === reqChannel.id);
-  if (findChannel) {
-    Object.assign(findChannel, reqChannel);
-    return c.json(findChannel);
-  } else {
-    channels.push(reqChannel);
-    return c.json(reqChannel);
-  }
+  const db = c.env!.DB as any;
+  await db
+    .prepare("INSERT OR REPLACE INTO channels VALUES (?, ?, ?, ?)")
+    .bind(
+      reqChannel.id,
+      reqChannel.title,
+      reqChannel.live ? 1 : 0,
+      reqChannel.thumbnail
+    )
+    .run();
+  return c.json(reqChannel);
 });
 
-app.get("/api/channels/:id", (c) => {
+app.get("/api/channels/:id", async (c) => {
   const id = c.req.param("id");
-
-  const channel = channels.find((c) => c.id === id);
+  const db = c.env!.DB as any;
+  const channel = await db
+    .prepare("SELECT id, title, live, thumbnail FROM channels WHERE id = ?")
+    .bind(id)
+    .first();
   if (!channel) {
     c.status(404);
     return c.json({ error: "Channel not found" });
@@ -75,13 +89,32 @@ app.get("/api/channels/:id", (c) => {
 
 app.patch("/api/channels/:id", async (c) => {
   const id = c.req.param("id");
-  const channel = channels.find((c) => c.id === id);
-  if (!channel) {
+  const db = c.env!.DB as any;
+  const body: Record<string, string | number | null> = await c.req.json();
+  const segment = Object.keys(body)
+    .map((key) => {
+      if (!["title", "live", "thumbnail"].includes(key)) {
+        throw new HTTPException(400, { message: "Invalid key" });
+      }
+      return `${key} = ?`;
+    })
+    .join(", ");
+  const count = await db
+    .prepare(`UPDATE channels SET ${segment} WHERE id = ?`)
+    .bind(Object.values(body), id)
+    .first();
+  if (!count) {
     c.status(404);
     return c.json({ error: "Channel not found" });
   }
-  Object.assign(channel, await c.req.json());
-  return c.json(channel);
+  return c.json(body);
+});
+
+app.onError((err) => {
+  if (err instanceof HTTPException) {
+    return err.getResponse();
+  }
+  throw err;
 });
 
 export default app;
