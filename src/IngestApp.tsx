@@ -62,26 +62,16 @@ function IngestApp() {
     authToken?: string;
     title?: string;
   }) {
+    if (!stream) return;
     const { liveUrl, authToken, title } = options;
     client.current = new WHIPClient(liveUrl, stream, {
       authToken,
+      enableDataChannel: true,
+      iceServers: true,
+      maxBitrate: 5000000,
       preferredCodec: "video/VP9",
     });
     setOpen(false);
-
-    client.current.peerConnection.addEventListener(
-      "icegatheringstatechange",
-      function () {
-        if (this.iceGatheringState !== "complete") return;
-        this.getSenders().forEach((sender) => {
-          if (sender.track?.kind === "video") {
-            const parameters = sender.getParameters();
-            parameters.encodings[0].maxBitrate = 5000000;
-            sender.setParameters(parameters);
-          }
-        });
-      }
-    );
 
     client.current.peerConnection.addEventListener(
       "connectionstatechange",
@@ -119,7 +109,7 @@ function IngestApp() {
       }
     );
 
-    client.current.dataChannel.addEventListener("message", (ev) => {
+    client.current.dataChannel!.addEventListener("message", (ev) => {
       const data = JSON.parse(ev.data);
       const { type, id, body } = data;
       if (type === "message") {
@@ -133,7 +123,7 @@ function IngestApp() {
       }
     });
 
-    client.current.dataChannel.addEventListener("open", function () {
+    client.current.dataChannel!.addEventListener("open", function () {
       this.send(
         JSON.stringify({
           type: "meta",

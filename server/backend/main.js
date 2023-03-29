@@ -199,11 +199,21 @@ async function handleWhepEndpoint(req) {
     }
   );
 
-  let answer = await peerConnection.createAnswer();
-  peerConnection.setLocalDescription(answer);
-  answer = await waitToCompleteICEGathering(peerConnection);
+  let sdp = null;
+  if (offer) {
+    peerConnection.setRemoteDescription({ type: "offer", sdp: offer });
+    let answer = await peerConnection.createAnswer();
+    peerConnection.setLocalDescription(answer);
+    answer = await waitToCompleteICEGathering(peerConnection);
+    sdp = answer.sdp;
+  } else {
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
+    sdp = offer.sdp;
+  }
+
   if (environ.PUBLIC_IP) {
-    answer.sdp = answer.sdp.replace(/[A-Za-z0-9-]+\.local/g, environ.PUBLIC_IP);
+    sdp = sdp.replace(/[A-Za-z0-9-]+\.local/g, environ.PUBLIC_IP);
   }
 
   const resourceId = crypto.randomUUID();
@@ -212,7 +222,7 @@ async function handleWhepEndpoint(req) {
   sendLiveViewers(channel.resource);
 
   const origin = new URL(req.url).origin;
-  return new Response(answer.sdp, {
+  return new Response(sdp, {
     status: 201,
     headers: {
       "Content-Type": "application/sdp",

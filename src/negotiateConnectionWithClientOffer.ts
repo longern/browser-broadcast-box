@@ -36,33 +36,24 @@ export default async function negotiateConnectionWithClientOffer(
     authToken: options?.authToken,
     httpPopupProxy: true,
   });
-  if (response.status <= 299) {
-    let answerSDP = await response.text();
-    await peerConnection.setRemoteDescription(
-      new RTCSessionDescription({ type: "answer", sdp: answerSDP })
-    );
-    const loc = response.headers.get("Location");
-    if (loc) {
-      if (loc.startsWith("http")) {
-        // absolute path
-        return loc;
-      } else {
-        // relative path
-        const parsed = new URL(endpoint);
-        parsed.pathname = loc;
-        return parsed.toString();
-      }
-    }
-    return null;
-  } else if (response.status === 405) {
-    console.log(
-      "Remember to update the URL passed into the WHIP or WHEP client"
-    );
-    return null;
-  } else {
+  if (response.status >= 400) {
     const errorMessage = await response.text();
-    console.error(errorMessage);
-    return null;
+    throw Error(errorMessage);
+  }
+  let answerSDP = await response.text();
+  await peerConnection.setRemoteDescription(
+    new RTCSessionDescription({ type: "answer", sdp: answerSDP })
+  );
+  const loc = response.headers.get("Location");
+  if (!loc) return null;
+  else if (loc.startsWith("http")) {
+    // absolute path
+    return loc;
+  } else {
+    // relative path
+    const parsed = new URL(endpoint);
+    parsed.pathname = loc;
+    return parsed.toString();
   }
 }
 
@@ -72,15 +63,19 @@ async function postSDPOffer(
   options?: {
     authToken?: string;
     httpPopupProxy?: boolean;
+    method?: string;
   }
 ) {
+  options = options || {};
+  const method = options.method || "POST";
+
   const headers = new Headers();
   headers.set("content-type", "application/sdp");
-  if (options?.authToken) {
+  if (options.authToken) {
     headers.set("Authorization", `Bearer ${options.authToken}`);
   }
   const request = new Request(endpoint, {
-    method: "POST",
+    method,
     mode: "cors",
     headers,
     body: data,
@@ -88,7 +83,7 @@ async function postSDPOffer(
 
   const url = new URL(request.url);
   if (
-    options?.httpPopupProxy &&
+    options.httpPopupProxy &&
     window.location.protocol === "https:" &&
     url.protocol === "http:" &&
     !["localhost", "127.0.0.1", "[::1]"].includes(url.hostname)
