@@ -1,14 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 
-import { ArrowBack, Fullscreen, Send } from "@mui/icons-material";
+import { ArrowBack, MoreVert, Send, Share } from "@mui/icons-material";
 import {
   AppBar,
   Box,
   Dialog,
   DialogContent,
+  Grid,
   IconButton,
   InputAdornment,
   Stack,
+  SwipeableDrawer,
   TextField,
   Theme,
   Toolbar,
@@ -158,6 +160,8 @@ function EgressMobileLandscapeStream({
   messages: Message[];
   handleChatInput: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+
   return (
     <>
       <AppBar position="static">
@@ -165,6 +169,31 @@ function EgressMobileLandscapeStream({
           <IconButton aria-label="back" href="/" size="large">
             <ArrowBack />
           </IconButton>
+          <Box sx={{ flexGrow: 1 }} />
+          <IconButton
+            aria-label="menu"
+            size="large"
+            aria-haspopup="true"
+            onClick={() => setMenuOpen(true)}
+          >
+            <MoreVert />
+          </IconButton>
+          <SwipeableDrawer
+            anchor="bottom"
+            open={menuOpen}
+            onClose={() => setMenuOpen(false)}
+            onOpen={() => setMenuOpen(true)}
+            // Border radius top
+            sx={{ "& .MuiDrawer-paper": { borderRadius: "16px 16px 0 0" } }}
+          >
+            <Grid>
+              <Grid item>
+                <IconButton aria-label="share" size="large">
+                  <Share />
+                </IconButton>
+              </Grid>
+            </Grid>
+          </SwipeableDrawer>
         </Toolbar>
       </AppBar>
       <Box sx={{ aspectRatio: "16/9" }}>
