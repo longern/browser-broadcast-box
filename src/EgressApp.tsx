@@ -14,12 +14,95 @@ import {
   Toolbar,
   useMediaQuery,
 } from "@mui/material";
-import EgressForm from "./components/EgressForm";
-import VideoStream from "./IngestDesktop/VideoStream";
-import type { Message } from "./components/Messages";
 
+import VideoStream from "./IngestDesktop/VideoStream";
 import WHEPClient from "./WHEPClient";
+import EgressForm from "./components/EgressForm";
+import type { Message } from "./components/Messages";
 import Messages from "./components/Messages";
+import VideoOverlay from "./components/VideoOverlay";
+import VideoControls from "./components/VideoControls";
+
+function VideoContainer({
+  stream,
+  style,
+}: {
+  stream?: MediaStream;
+  style?: React.CSSProperties;
+}) {
+  const [fullscreen, setFullscreen] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const [paused, setPaused] = useState(false);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const videoOverlayRef = useRef<HTMLDivElement>(null);
+
+  function handleFullscreenChange(fullscreen: boolean) {
+    if (fullscreen && !document.fullscreenElement) {
+      videoOverlayRef.current!.requestFullscreen().then(() => {
+        setFullscreen(true);
+        const isVideoLandscape =
+          videoRef.current!.videoWidth > videoRef.current!.videoHeight;
+        if (isVideoLandscape) window.screen.orientation.lock("landscape");
+      });
+    } else if (!fullscreen && document.fullscreenElement) {
+      document.exitFullscreen().then(() => {
+        setFullscreen(false);
+        window.screen.orientation.unlock();
+      });
+    }
+  }
+
+  useEffect(() => {
+    const play = () => setPaused(false);
+    const pause = () => setPaused(true);
+    const volumechange = () => setMuted(Boolean(videoRef.current?.muted));
+    function handleFullscreen() {
+      setFullscreen(Boolean(document.fullscreenElement));
+    }
+    const video = videoRef.current!;
+    video.addEventListener("play", play);
+    video.addEventListener("pause", pause);
+    video.addEventListener("volumechange", volumechange);
+    document.addEventListener("fullscreenchange", handleFullscreen);
+    return () => {
+      video.removeEventListener("play", play);
+      video.removeEventListener("pause", pause);
+      video.removeEventListener("volumechange", volumechange);
+      document.removeEventListener("fullscreenchange", handleFullscreen);
+    };
+  }, []);
+
+  return (
+    <VideoOverlay
+      ref={videoOverlayRef}
+      videoComponent={
+        <VideoStream
+          ref={videoRef}
+          stream={stream}
+          autoPlay
+          playsInline
+          style={{
+            display: "block",
+            width: "100%",
+            height: "100%",
+            backgroundColor: "black",
+            objectFit: "contain",
+          }}
+        />
+      }
+      style={{ ...style, position: "relative" }}
+    >
+      <VideoControls
+        videoRef={videoRef}
+        paused={paused}
+        muted={muted}
+        fullscreen={fullscreen}
+        onFullscreenChange={handleFullscreenChange}
+      />
+    </VideoOverlay>
+  );
+}
 
 function EgressDesktop({
   stream,
@@ -30,24 +113,9 @@ function EgressDesktop({
   messages: Message[];
   handleChatInput: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
   return (
     <Stack direction="row" sx={{ height: "100%" }}>
-      <VideoStream
-        ref={videoRef}
-        stream={stream}
-        autoPlay
-        playsInline
-        style={{
-          flexGrow: 1,
-          minWidth: 0,
-          height: "100%",
-          aspectRatio: "16/9",
-          background: "black",
-          objectFit: "contain",
-        }}
-      />
+      <VideoContainer stream={stream} />
       <Stack
         spacing={1}
         sx={{
@@ -90,8 +158,6 @@ function EgressMobileLandscapeStream({
   messages: Message[];
   handleChatInput: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
   return (
     <>
       <AppBar position="static">
@@ -101,16 +167,9 @@ function EgressMobileLandscapeStream({
           </IconButton>
         </Toolbar>
       </AppBar>
-      <VideoStream
-        ref={videoRef}
-        stream={stream}
-        autoPlay
-        playsInline
-        style={{
-          width: "100%",
-          background: "black",
-        }}
-      />
+      <Box sx={{ aspectRatio: "16/9" }}>
+        <VideoContainer stream={stream} />
+      </Box>
       <Stack
         spacing={1}
         sx={{
@@ -130,12 +189,6 @@ function EgressMobileLandscapeStream({
             autoComplete="off"
             onKeyDown={handleChatInput}
           />
-          <IconButton
-            aria-label="fullscreen"
-            onClick={() => videoRef.current!.requestFullscreen()}
-          >
-            <Fullscreen />
-          </IconButton>
         </Stack>
       </Stack>
     </>
@@ -217,12 +270,6 @@ function EgressMobilePortraitStream({
               autoComplete="off"
               onKeyDown={handleChatInput}
             />
-            <IconButton
-              aria-label="fullscreen"
-              onClick={() => videoRef.current!.requestFullscreen()}
-            >
-              <Fullscreen />
-            </IconButton>
           </Stack>
         </Stack>
       </Box>
@@ -235,9 +282,6 @@ function EgressApp() {
   const [stream, setStream] = useState<MediaStream | undefined>(undefined);
   const [messages, setMessages] = useState<Message[]>([]);
   const [videoSize, setVideoSize] = useState({ width: 1920, height: 1080 });
-  const mediaQuery = useMediaQuery((theme: Theme) =>
-    theme.breakpoints.up("sm")
-  );
 
   const client = useRef<WHEPClient | null>(null);
 
@@ -255,13 +299,16 @@ function EgressApp() {
     const videoElement = document.createElement("video");
     videoElement.muted = true;
     videoElement.srcObject = stream;
-    videoElement.addEventListener("loadedmetadata", function handleLoaded() {
-      setVideoSize({
-        width: videoElement.videoWidth,
-        height: videoElement.videoHeight,
-      });
-      videoElement.removeEventListener("loadedmetadata", handleLoaded);
-    });
+    videoElement.addEventListener(
+      "loadedmetadata",
+      () => {
+        setVideoSize({
+          width: videoElement.videoWidth,
+          height: videoElement.videoHeight,
+        });
+      },
+      { once: true }
+    );
   }, [stream]);
 
   async function handleWatchStream(options: { liveUrl: string }) {
@@ -297,6 +344,15 @@ function EgressApp() {
     }
   }
 
+  const mediaQuery = useMediaQuery((theme: Theme) =>
+    theme.breakpoints.up("sm")
+  );
+  const Layout = mediaQuery
+    ? EgressDesktop
+    : videoSize.width < videoSize.height
+    ? EgressMobilePortraitStream
+    : EgressMobileLandscapeStream;
+
   return (
     <div className="App">
       <Dialog open={dialogOpen} fullWidth>
@@ -304,25 +360,11 @@ function EgressApp() {
           <EgressForm onWatchStream={handleWatchStream} />
         </DialogContent>
       </Dialog>
-      {mediaQuery ? (
-        <EgressDesktop
-          stream={stream}
-          messages={messages}
-          handleChatInput={handleChatInput}
-        />
-      ) : videoSize.width < videoSize.height ? (
-        <EgressMobilePortraitStream
-          stream={stream}
-          messages={messages}
-          handleChatInput={handleChatInput}
-        />
-      ) : (
-        <EgressMobileLandscapeStream
-          stream={stream}
-          messages={messages}
-          handleChatInput={handleChatInput}
-        />
-      )}
+      <Layout
+        stream={stream}
+        messages={messages}
+        handleChatInput={handleChatInput}
+      />
     </div>
   );
 }
