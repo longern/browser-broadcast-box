@@ -84,8 +84,12 @@ export default function IngestForm({
       method: "POST",
       headers: { Authorization: `Bearer ${authToken}` },
     });
-    const live_input = await response.json();
-    setLiveUrl(live_input.webRTC.url);
+    const live_input_response = await response.json();
+    if (!live_input_response.success) {
+      window.alert(live_input_response.messages[0].message);
+      return;
+    }
+    setLiveUrl(live_input_response.result.webRTC.url);
   }
 
   async function handleDeviceChange(e: SelectChangeEvent) {

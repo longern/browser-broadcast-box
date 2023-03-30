@@ -16,7 +16,15 @@ function promiseFn<T>(fn: () => T) {
   });
 }
 
-class D1PreparedStatement {
+export declare interface D1Result<T = unknown> {
+  results?: T[];
+  success: boolean;
+  error?: string;
+  // deno-lint-ignore no-explicit-any
+  meta: any;
+}
+
+export class D1PreparedStatement {
   #stmt: PreparedQuery;
   #params?: QueryParameter[];
 
@@ -40,7 +48,7 @@ class D1PreparedStatement {
         results,
         success: true,
         meta: { duration: end_time - start_time },
-      };
+      } as D1Result<typeof results[number]>;
     });
   }
 
@@ -54,10 +62,10 @@ class D1PreparedStatement {
       this.#stmt.execute(this.#params);
       const end_time = performance.now();
       return {
-        results: null,
+        results: undefined,
         success: true,
         meta: { duration: end_time - start_time },
-      };
+      } as D1Result;
     });
   }
 
@@ -66,7 +74,7 @@ class D1PreparedStatement {
   }
 }
 
-export class D1Adapter {
+export class D1Database {
   #db: DB;
 
   constructor(path?: string) {

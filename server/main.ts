@@ -1,9 +1,10 @@
+import { D1Database } from "@cloudflare/workers-types";
+
 import { ConnInfo, loadSync, serve, serveStatic } from "./deps.ts";
 import app from "./app.ts";
 import { websocketHandler, websocketProxyHandler } from "./ws.ts";
-import { D1Adapter } from "./d1-adapter.ts";
 
-let bindings: Record<string, string | D1Adapter> | undefined = undefined;
+let bindings: Record<string, string | D1Database> | undefined = undefined;
 
 app.get("/", async (c, next) => {
   if (c.req.header("upgrade")?.toLowerCase() === "websocket")
@@ -88,7 +89,7 @@ async function init() {
   if (Deno.env.get("BEARER_TOKEN")) console.log("Bearer token is set");
 
   const db = Deno.env.get("DB") || "./db.sqlite3";
-  bindings = { ...Deno.env.toObject(), DB: new D1Adapter(db) };
+  bindings = { ...Deno.env.toObject(), DB: new D1Database(db) };
 }
 
 init();

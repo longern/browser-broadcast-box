@@ -1,3 +1,4 @@
+import { D1Database } from "@cloudflare/workers-types";
 import { Hono } from "hono";
 import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
@@ -10,7 +11,13 @@ type Channel = {
   thumbnail: string;
 };
 
-const app = new Hono();
+type Bindings = {
+  BEARER_TOKEN?: string;
+  DB: D1Database;
+  LIVE_INPUTS_URL?: string;
+};
+
+const app = new Hono<{ Bindings: Bindings }>();
 
 app.use("/api/*", cors());
 
@@ -26,21 +33,22 @@ app.use("/api/*", (c, next) => {
 
 app.get("/api/channels", async (c) => {
   const live = c.req.query("live");
-  const db = c.env!.DB as any;
+  const db = c.env.DB;
   const stmt = live
     ? "SELECT id, title, live, thumbnail FROM channels WHERE live = 1"
     : "SELECT id, title, live, thumbnail FROM channels";
   const { results } = await db.prepare(stmt).all();
-  return c.json({ channels: results });
+  return c.json({ channels: results! });
 });
 
 app.post("/api/channels", async (c) => {
   const { id, title, thumbnail } = await c.req.json();
-  const db = c.env!.DB as any;
-  const count = await db
+  const db = c.env.DB;
+  const row = await db
     .prepare("INSERT INTO channels VALUES (?, ?, ?, ?)")
-    .first(id, title, 0, thumbnail);
-  if (count === 0) {
+    .bind(id, title, 0, thumbnail)
+    .first();
+  if (row) {
     c.status(409);
     return c.json({ error: "Channel already exists" });
   }
@@ -55,7 +63,7 @@ app.post("/api/channels", async (c) => {
 
 app.put("/api/channels", async (c) => {
   const reqChannel: Channel = await c.req.json();
-  const db = c.env!.DB as any;
+  const db = c.env.DB;
   await db
     .prepare("INSERT OR REPLACE INTO channels VALUES (?, ?, ?, ?)")
     .bind(
@@ -70,34 +78,39 @@ app.put("/api/channels", async (c) => {
 
 app.get("/api/channels/:id", async (c) => {
   const id = c.req.param("id");
-  const db = c.env!.DB as any;
+  const db = c.env.DB;
   const channel = await db
     .prepare("SELECT id, title, live, thumbnail FROM channels WHERE id = ?")
     .bind(id)
     .first();
-  if (!channel) {
-    c.status(404);
-    return c.json({ error: "Channel not found" });
-  }
+  if (!channel) throw new HTTPException(404, { message: "Channel not found" });
   return c.json(channel);
 });
 
-app.post("/api/live_inputs", (c) => {
-  const live_inputs_url = c.env!.LIVE_INPUTS_URL as string | undefined;
+app.post("/api/live_inputs", async (c) => {
+  const live_inputs_url = c.env.LIVE_INPUTS_URL;
   if (live_inputs_url) {
-    return fetch(live_inputs_url, {
+    const response = await fetch(live_inputs_url, {
       method: "POST",
-      headers: { Authorization: c.req.headers.get("Authorization") || "" },
+      headers: { Authorization: c.req.header("Authorization")! },
+    });
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers,
     });
   } else {
     const url = new URL(c.req.url);
     const origin = c.req.headers.get("origin") || url.origin;
     return c.json({
-      webRTC: {
-        url: `${origin}/api/whip`,
-      },
-      webRTCPlayback: {
-        url: `${origin}/api/whep`,
+      success: true,
+      result: {
+        webRTC: {
+          url: `${origin}/api/whip`,
+        },
+        webRTCPlayback: {
+          url: `${origin}/api/whep`,
+        },
       },
     });
   }
@@ -105,30 +118,42 @@ app.post("/api/live_inputs", (c) => {
 
 app.patch("/api/channels/:id", async (c) => {
   const id = c.req.param("id");
-  const db = c.env!.DB as any;
+  const db = c.env.DB;
   const body: Record<string, string | number | null> = await c.req.json();
   const segment = Object.keys(body)
     .map((key) => {
-      if (!["title", "live", "thumbnail"].includes(key)) {
+      if (!["title", "live", "thumbnail"].includes(key))
         throw new HTTPException(400, { message: "Invalid key" });
-      }
       return `${key} = ?`;
     })
     .join(", ");
   const count = await db
     .prepare(`UPDATE channels SET ${segment} WHERE id = ?`)
-    .bind(Object.values(body), id)
+    .bind(...Object.values(body), id)
     .first();
   if (!count) {
-    c.status(404);
-    return c.json({ error: "Channel not found" });
+    throw new HTTPException(404, { message: "Channel not found" });
   }
   return c.json(body);
 });
 
+app.all("/api/*", () => {
+  throw new HTTPException(404, { message: "Not found" });
+});
+
 app.onError((err) => {
   if (err instanceof HTTPException) {
-    return err.getResponse();
+    return new Response(
+      JSON.stringify({
+        success: false,
+        result: null,
+        messages: [{ code: err.status, message: err.message }],
+      }),
+      {
+        status: err.status,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
   throw err;
 });

@@ -10,6 +10,7 @@ const handlerMap: Record<
 > = {};
 
 const logger = {
+  // deno-lint-ignore no-explicit-any
   log(...args: any[]) {
     const time = new Date().toLocaleTimeString([], {
       hour12: false,
