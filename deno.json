@@ -4,10 +4,10 @@
     "prod": "deno run -A server/main.ts"
   },
   "imports": {
-    "hono": "https://deno.land/x/hono@v3.1.3/mod.ts",
-    "hono/bearer-auth": "https://deno.land/x/hono@v3.1.3/middleware/bearer-auth/index.ts",
-    "hono/cors": "https://deno.land/x/hono@v3.1.3/middleware/cors/index.ts",
-    "hono/http-exception": "https://deno.land/x/hono@v3.1.3/http-exception.ts",
+    "hono": "https://deno.land/x/hono@v3.1.4/mod.ts",
+    "hono/bearer-auth": "https://deno.land/x/hono@v3.1.4/middleware/bearer-auth/index.ts",
+    "hono/cors": "https://deno.land/x/hono@v3.1.4/middleware/cors/index.ts",
+    "hono/http-exception": "https://deno.land/x/hono@v3.1.4/http-exception.ts",
     "@cloudflare/workers-types": "./server/d1-adapter.ts"
   },
   "lock": false

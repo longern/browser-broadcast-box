@@ -12,13 +12,13 @@ app.get("/", async (c, next) => {
   else await next();
 });
 
-app.get("/api/:endpoint{whip|whep}", async (c, next) => {
+app.get("/api/:endpoint{(whip|whep)}", async (c, next) => {
   if (c.req.header("accept")?.startsWith("text/html"))
     return serveStatic({ path: "./server/proxy.html" })(c, next);
   await next();
 });
 
-app.post("/api/:endpoint{whip|whep}", (c) => {
+app.post("/api/:endpoint{(whip|whep)}", (c) => {
   return websocketProxyHandler(c.req.raw);
 });
 

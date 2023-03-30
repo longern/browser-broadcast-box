@@ -137,8 +137,8 @@ app.patch("/api/channels/:id", async (c) => {
   return c.json(body);
 });
 
-app.all("/api/*", () => {
-  throw new HTTPException(404, { message: "Not found" });
+app.notFound(() => {
+  throw new HTTPException(404, { message: "API endpoint not found" });
 });
 
 app.onError((err) => {
