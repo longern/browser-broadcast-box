@@ -27,16 +27,11 @@ app.use("/api/whip", (c, next) => {
 app.get("/api/channels", async (c) => {
   const live = c.req.query("live");
   const db = c.env!.DB as any;
-  await db
-    .prepare(
-      "CREATE TABLE IF NOT EXISTS channels (id TEXT PRIMARY KEY, title TEXT, live INTEGER, thumbnail TEXT)"
-    )
-    .run();
   const stmt = live
     ? "SELECT id, title, live, thumbnail FROM channels WHERE live = 1"
     : "SELECT id, title, live, thumbnail FROM channels";
-  const channels = await db.prepare(stmt).all();
-  return c.json({ channels });
+  const { results } = await db.prepare(stmt).all();
+  return c.json({ channels: results });
 });
 
 app.post("/api/channels", async (c) => {

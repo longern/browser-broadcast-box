@@ -4,6 +4,10 @@ import type {
   QueryParameter,
 } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
 
+const finalizationRegistry = new FinalizationRegistry((stmt: PreparedQuery) => {
+  stmt.finalize();
+});
+
 class D1PreparedStatement {
   #stmt: PreparedQuery;
   #params?: QueryParameter[];
@@ -11,6 +15,7 @@ class D1PreparedStatement {
   constructor(db: DB, statement: string) {
     this.#stmt = db.prepareQuery(statement);
     this.#params = undefined;
+    finalizationRegistry.register(this, this.#stmt);
   }
 
   bind(...args: QueryParameter[]) {
@@ -19,19 +24,30 @@ class D1PreparedStatement {
   }
 
   all() {
-    return this.#stmt.allEntries(this.#params);
+    const start_time = performance.now();
+    this.#stmt.allEntries(this.#params);
+    const end_time = performance.now();
+    return new Promise((resolve) =>
+      resolve({
+        results: this.#stmt.allEntries(this.#params),
+        success: true,
+        meta: {
+          duration: end_time - start_time,
+        },
+      })
+    );
   }
 
   raw() {
-    return this.#stmt.all(this.#params);
+    return new Promise((resolve) => resolve(this.#stmt.all(this.#params)));
   }
 
   run() {
-    return this.#stmt.execute(this.#params);
+    return new Promise((resolve) => resolve(this.#stmt.execute(this.#params)));
   }
 
   first() {
-    return this.#stmt.first(this.#params);
+    return new Promise((resolve) => resolve(this.#stmt.first(this.#params)));
   }
 }
 
