@@ -14,7 +14,7 @@ const app = new Hono();
 
 app.use("/api/*", cors());
 
-app.use("/api/whip", (c, next) => {
+app.use("/api/*", (c, next) => {
   if (
     !c.env?.BEARER_TOKEN ||
     !["POST", "PATCH", "DELETE"].includes(c.req.method) ||
@@ -80,6 +80,27 @@ app.get("/api/channels/:id", async (c) => {
     return c.json({ error: "Channel not found" });
   }
   return c.json(channel);
+});
+
+app.post("/api/live_inputs", (c) => {
+  const live_inputs_url = c.env!.LIVE_INPUTS_URL as string | undefined;
+  if (live_inputs_url) {
+    return fetch(live_inputs_url, {
+      method: "POST",
+      headers: { Authorization: c.req.headers.get("Authorization") || "" },
+    });
+  } else {
+    const url = new URL(c.req.url);
+    const origin = c.req.headers.get("origin") || url.origin;
+    return c.json({
+      webRTC: {
+        url: `${origin}/api/whip`,
+      },
+      webRTCPlayback: {
+        url: `${origin}/api/whep`,
+      },
+    });
+  }
 });
 
 app.patch("/api/channels/:id", async (c) => {

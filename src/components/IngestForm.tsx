@@ -79,6 +79,15 @@ export default function IngestForm({
     init();
   }, []);
 
+  async function createLiveInput() {
+    const response = await fetch("/api/live_inputs", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    const live_input = await response.json();
+    setLiveUrl(live_input.webRTC.url);
+  }
+
   async function handleDeviceChange(e: SelectChangeEvent) {
     if (onDeviceChange)
       await onDeviceChange(e.target.value === "none" ? null : e.target.value);
@@ -93,28 +102,40 @@ export default function IngestForm({
   return (
     <Box component="form">
       <Stack direction="column" spacing={3}>
-        <TextField
-          id="live-url"
-          value={liveUrl}
-          label="Live URL"
-          size="small"
-          required
-          onChange={(e) => setLiveUrl(e.target.value)}
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton
-                  aria-label="clear live url"
-                  sx={{ visibility: liveUrl ? "visible" : "hidden" }}
-                  onClick={() => setLiveUrl("")}
-                  edge="end"
-                >
-                  <CloseIcon />
-                </IconButton>
-              </InputAdornment>
-            ),
-          }}
-        ></TextField>
+        <Stack direction="row" spacing={1}>
+          <TextField
+            id="live-url"
+            value={liveUrl}
+            label="Live URL"
+            size="small"
+            required
+            onChange={(e) => setLiveUrl(e.target.value)}
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="clear live url"
+                    sx={{ visibility: liveUrl ? "visible" : "hidden" }}
+                    onClick={() => setLiveUrl("")}
+                    edge="end"
+                  >
+                    <CloseIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            sx={{ flexGrow: 1 }}
+          ></TextField>
+          <Button
+            variant="contained"
+            size="small"
+            color="primary"
+            disabled={!authToken}
+            onClick={createLiveInput}
+          >
+            Create
+          </Button>
+        </Stack>
         {/* Hidden input username for save password */}
         <input
           type="text"

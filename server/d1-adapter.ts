@@ -1,12 +1,20 @@
-import { DB } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
-import type {
-  PreparedQuery,
-  QueryParameter,
-} from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
+import { DB, PreparedQuery } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
+import type { QueryParameter } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
 
 const finalizationRegistry = new FinalizationRegistry((stmt: PreparedQuery) => {
   stmt.finalize();
 });
+
+function promiseFn<T>(fn: () => T) {
+  return new Promise<T>((resolve, reject) => {
+    try {
+      const result = fn();
+      resolve(result);
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
 
 class D1PreparedStatement {
   #stmt: PreparedQuery;
@@ -24,30 +32,37 @@ class D1PreparedStatement {
   }
 
   all() {
-    const start_time = performance.now();
-    this.#stmt.allEntries(this.#params);
-    const end_time = performance.now();
-    return new Promise((resolve) =>
-      resolve({
-        results: this.#stmt.allEntries(this.#params),
+    return promiseFn(() => {
+      const start_time = performance.now();
+      const results = this.#stmt.allEntries(this.#params);
+      const end_time = performance.now();
+      return {
+        results,
         success: true,
-        meta: {
-          duration: end_time - start_time,
-        },
-      })
-    );
+        meta: { duration: end_time - start_time },
+      };
+    });
   }
 
   raw() {
-    return new Promise((resolve) => resolve(this.#stmt.all(this.#params)));
+    return promiseFn(() => this.#stmt.all(this.#params));
   }
 
   run() {
-    return new Promise((resolve) => resolve(this.#stmt.execute(this.#params)));
+    return promiseFn(() => {
+      const start_time = performance.now();
+      this.#stmt.execute(this.#params);
+      const end_time = performance.now();
+      return {
+        results: null,
+        success: true,
+        meta: { duration: end_time - start_time },
+      };
+    });
   }
 
   first() {
-    return new Promise((resolve) => resolve(this.#stmt.first(this.#params)));
+    return promiseFn(() => this.#stmt.first(this.#params));
   }
 }
 
