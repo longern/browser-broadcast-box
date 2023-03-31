@@ -1,5 +1,9 @@
-import { DB, PreparedQuery } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
-import type { QueryParameter } from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
+import {
+  DB,
+  PreparedQuery,
+  QueryParameter,
+  RowObject,
+} from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
 
 const finalizationRegistry = new FinalizationRegistry((stmt: PreparedQuery) => {
   stmt.finalize();
@@ -69,8 +73,18 @@ export class D1PreparedStatement {
     });
   }
 
-  first() {
-    return promiseFn(() => this.#stmt.first(this.#params));
+  first(column: string): Promise<unknown | null>;
+  first(column?: undefined): Promise<RowObject | null>;
+  first(column?: string) {
+    return promiseFn(() => {
+      const obj = this.#stmt.firstEntry(this.#params);
+      if (!obj) return null;
+      if (column) {
+        if (column in obj) return obj[column];
+        throw new Error(`Column ${column} not found`);
+      }
+      return obj;
+    });
   }
 }
 
