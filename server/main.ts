@@ -1,6 +1,7 @@
 import { D1Database } from "@cloudflare/workers-types";
+import { loadSync } from "dotenv";
 
-import { ConnInfo, loadSync, serve, serveStatic } from "./deps.ts";
+import { ConnInfo, serve, serveStatic } from "./deps.ts";
 import app from "./app.ts";
 import { websocketHandler, websocketProxyHandler } from "./ws.ts";
 

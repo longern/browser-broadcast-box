@@ -4,6 +4,8 @@ import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
 import { HTTPException } from "hono/http-exception";
 
+import liveInputApp from "./live-inputs.ts";
+
 type Channel = {
   id: string;
   live_input: string;
@@ -14,7 +16,6 @@ type Channel = {
 type Bindings = {
   BEARER_TOKEN?: string;
   DB: D1Database;
-  LIVE_INPUTS_URL?: string;
 };
 
 const app = new Hono<{ Bindings: Bindings }>();
@@ -23,7 +24,7 @@ app.use("/api/*", cors());
 
 app.use("/api/*", (c, next) => {
   if (
-    !c.env?.BEARER_TOKEN ||
+    !c.env.BEARER_TOKEN ||
     !["POST", "PATCH", "DELETE"].includes(c.req.method) ||
     c.req.path === "/api/whep"
   )
@@ -31,30 +32,11 @@ app.use("/api/*", (c, next) => {
   return bearerAuth({ token: c.env.BEARER_TOKEN as string })(c, next);
 });
 
-app.use("/api/live_inputs/:id?", async (c, next) => {
-  const live_inputs_url = c.env.LIVE_INPUTS_URL;
-  if (!live_inputs_url) return next();
-  const id = c.req.param("id");
-  const url = id ? `${live_inputs_url}/${id}` : live_inputs_url;
-  const headers = new Headers();
-  headers.set("Authorization", c.req.header("Authorization")!);
-  const response = await fetch(url, {
-    method: c.req.method,
-    headers,
-    body: c.req.body,
-  });
-  return new Response(response.body, {
-    status: response.status,
-    statusText: response.statusText,
-    headers: response.headers,
-  });
-});
-
 app.get("/api/channels", async (c) => {
   const live = c.req.query("live");
   const db = c.env.DB;
-  const base_stmt = "SELECT id, live_input, title, thumbnail FROM channels";
-  const stmt = live ? `${base_stmt} WHERE live_input IS NOT NULL` : base_stmt;
+  const baseStmt = "SELECT id, live_input, title, thumbnail FROM channels";
+  const stmt = live ? `${baseStmt} WHERE live_input IS NOT NULL` : baseStmt;
   const { results } = await db.prepare(stmt).all();
   return c.json({ channels: results! });
 });
@@ -114,73 +96,6 @@ app.get("/api/channels/:id", async (c) => {
   return c.json(channel);
 });
 
-app.get("/api/live_inputs", async (c) => {
-  const db = c.env.DB;
-  const { results } = await db
-    .prepare("SELECT uid, created, meta FROM live_inputs")
-    .all();
-  return c.json({ success: true, result: results });
-});
-
-app.post("/api/live_inputs", async (c) => {
-  const db = c.env.DB;
-  await db
-    .prepare(
-      "CREATE TABLE IF NOT EXISTS live_inputs (uid TEXT PRIMARY KEY, created TEXT, meta TEXT)"
-    )
-    .run();
-  const uid = crypto.randomUUID();
-  const created = new Date().toISOString();
-  const meta = await c.req
-    .json()
-    .then((body) => body.meta as Record<string, unknown>)
-    .catch(() => null);
-  await db
-    .prepare("INSERT INTO live_inputs (uid, created, meta) VALUES (?, ?, ?)")
-    .bind(uid, created, meta ? JSON.stringify(meta) : null)
-    .run();
-  const url = new URL(c.req.url);
-  const origin = c.req.headers.get("origin") || url.origin;
-  return c.json({
-    success: true,
-    result: {
-      uid,
-      created,
-      meta,
-      webRTC: {
-        url: `${origin}/api/whip`,
-      },
-      webRTCPlayback: {
-        url: `${origin}/api/whep`,
-      },
-    },
-  });
-});
-
-app.get("/api/live_inputs/:uid", async (c) => {
-  const uid = c.req.param("uid");
-  const db = c.env.DB;
-  const live_input = await db
-    .prepare("SELECT uid, created, meta FROM live_inputs WHERE uid = ?")
-    .bind(uid)
-    .first();
-  if (!live_input)
-    throw new HTTPException(404, { message: `Live input ${uid} not found` });
-  return c.json({ success: true, result: live_input });
-});
-
-app.delete("/api/live_inputs/:uid", async (c) => {
-  const uid = c.req.param("uid");
-  const db = c.env.DB;
-  const count = await db
-    .prepare("DELETE FROM live_inputs WHERE uid = ?")
-    .bind(uid)
-    .first();
-  if (!count)
-    throw new HTTPException(404, { message: `Live input ${uid} not found` });
-  return new Response(null, { status: 204 });
-});
-
 app.patch("/api/channels/:id", async (c) => {
   const id = c.req.param("id");
   const db = c.env.DB;
@@ -201,6 +116,63 @@ app.patch("/api/channels/:id", async (c) => {
   }
   return c.json(body);
 });
+
+app.post("/api/channels/:id/live_input", async (c) => {
+  const id = c.req.param("id");
+  const db = c.env.DB;
+  const channel = (await db
+    .prepare("SELECT id, live_input FROM channels WHERE id = ?")
+    .bind(id)
+    .first()) as { id: string; live_input: string | null } | null;
+  if (!channel) throw new HTTPException(404, { message: "Channel not found" });
+  if (channel.live_input)
+    throw new HTTPException(409, { message: "Live input already exists" });
+  const response = await app.fetch(new Request("/api/live_inputs"), {
+    method: "POST",
+    headers: { Authorization: c.env.BEARER_TOKEN },
+  });
+  if (!response.ok)
+    throw new HTTPException(500, { message: await response.text() });
+  const body = await response.json();
+  channel.live_input = body.result.uid;
+  await db
+    .prepare("UPDATE channels SET live_input = ? WHERE id = ?")
+    .bind(channel.live_input, id)
+    .run();
+  return c.json({ success: true, result: channel });
+});
+
+app.delete("/api/channels/:id/live_input", async (c) => {
+  const id = c.req.param("id");
+  const db = c.env.DB;
+  const channel = (await db
+    .prepare("SELECT id, live_input FROM channels WHERE id = ?")
+    .bind(id)
+    .first()) as { id: string; live_input: string | null } | null;
+  if (!channel) throw new HTTPException(404, { message: "Channel not found" });
+  if (!channel.live_input)
+    throw new HTTPException(404, { message: "Live input not found" });
+  const response = await app.fetch(
+    new Request(`/api/live_inputs/${channel.live_input}`),
+    {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: c.env.BEARER_TOKEN,
+      },
+    }
+  );
+  if (!response.ok)
+    throw new HTTPException(500, { message: await response.text() });
+  channel.live_input = null;
+  await db
+    .prepare("UPDATE channels SET live_input = NULL WHERE id = ?")
+    .bind(id)
+    .run();
+  return c.json({ success: true, result: channel });
+});
+
+app.route("/api/live_inputs", liveInputApp);
 
 app.notFound(() => {
   throw new HTTPException(404, { message: "API endpoint not found" });

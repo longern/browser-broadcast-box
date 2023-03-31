@@ -1,9 +1,4 @@
-import {
-  DB,
-  PreparedQuery,
-  QueryParameter,
-  RowObject,
-} from "https://deno.land/x/sqlite@v3.7.0/mod.ts";
+import { DB, PreparedQuery, QueryParameter, RowObject } from "sqlite";
 
 const finalizationRegistry = new FinalizationRegistry((stmt: PreparedQuery) => {
   stmt.finalize();
