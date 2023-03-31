@@ -31,6 +31,25 @@ app.use("/api/*", (c, next) => {
   return bearerAuth({ token: c.env.BEARER_TOKEN as string })(c, next);
 });
 
+app.use("/api/live_inputs/:id?", async (c, next) => {
+  const live_inputs_url = c.env.LIVE_INPUTS_URL;
+  if (!live_inputs_url) return next();
+  const id = c.req.param("id");
+  const url = id ? `${live_inputs_url}/${id}` : live_inputs_url;
+  const headers = new Headers();
+  headers.set("Authorization", c.req.header("Authorization")!);
+  const response = await fetch(url, {
+    method: c.req.method,
+    headers,
+    body: c.req.body,
+  });
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers: response.headers,
+  });
+});
+
 app.get("/api/channels", async (c) => {
   const live = c.req.query("live");
   const db = c.env.DB;
@@ -87,33 +106,20 @@ app.get("/api/channels/:id", async (c) => {
   return c.json(channel);
 });
 
-app.post("/api/live_inputs", async (c) => {
-  const live_inputs_url = c.env.LIVE_INPUTS_URL;
-  if (live_inputs_url) {
-    const response = await fetch(live_inputs_url, {
-      method: "POST",
-      headers: { Authorization: c.req.header("Authorization")! },
-    });
-    return new Response(response.body, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: response.headers,
-    });
-  } else {
-    const url = new URL(c.req.url);
-    const origin = c.req.headers.get("origin") || url.origin;
-    return c.json({
-      success: true,
-      result: {
-        webRTC: {
-          url: `${origin}/api/whip`,
-        },
-        webRTCPlayback: {
-          url: `${origin}/api/whep`,
-        },
+app.post("/api/live_inputs", (c) => {
+  const url = new URL(c.req.url);
+  const origin = c.req.headers.get("origin") || url.origin;
+  return c.json({
+    success: true,
+    result: {
+      webRTC: {
+        url: `${origin}/api/whip`,
       },
-    });
-  }
+      webRTCPlayback: {
+        url: `${origin}/api/whep`,
+      },
+    },
+  });
 });
 
 app.patch("/api/channels/:id", async (c) => {
