@@ -5,11 +5,12 @@ import { ThemeProvider, createTheme } from "@mui/material/styles";
 import "./index.css";
 import IndexApp from "./IndexApp";
 import EgressApp from "./EgressApp";
-import { CssBaseline } from "@mui/material";
+import { CssBaseline, useMediaQuery } from "@mui/material";
 
 const IngestApp = React.lazy(() => import("./IngestApp"));
 const IngestDesktopApp = React.lazy(() => import("./IngestDesktop/App"));
 
+const lightTheme = createTheme({ palette: { mode: "light" } });
 const darkTheme = createTheme({ palette: { mode: "dark" } });
 
 const root = ReactDOM.createRoot(document.getElementById("root")!);
@@ -41,9 +42,10 @@ function Router() {
 }
 
 function Root() {
+  const prefersDarkTheme = useMediaQuery("(prefers-color-scheme: dark)");
   return (
     <React.StrictMode>
-      <ThemeProvider theme={darkTheme}>
+      <ThemeProvider theme={prefersDarkTheme ? darkTheme : lightTheme}>
         <CssBaseline />
         <Router />
       </ThemeProvider>

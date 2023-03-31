@@ -176,6 +176,7 @@ function IngestApp() {
           height: "100%",
           objectFit: "contain",
           zIndex: -1,
+          backgroundColor: "black",
         }}
       />
       <Box
