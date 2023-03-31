@@ -131,9 +131,13 @@ app.post("/api/live_inputs", async (c) => {
     .run();
   const uid = crypto.randomUUID();
   const created = new Date().toISOString();
+  const meta = await c.req
+    .json()
+    .then((body) => body.meta as Record<string, unknown>)
+    .catch(() => null);
   await db
     .prepare("INSERT INTO live_inputs (uid, created, meta) VALUES (?, ?, ?)")
-    .bind(uid, created, null)
+    .bind(uid, created, meta ? JSON.stringify(meta) : null)
     .run();
   const url = new URL(c.req.url);
   const origin = c.req.headers.get("origin") || url.origin;
@@ -142,6 +146,7 @@ app.post("/api/live_inputs", async (c) => {
     result: {
       uid,
       created,
+      meta,
       webRTC: {
         url: `${origin}/api/whip`,
       },

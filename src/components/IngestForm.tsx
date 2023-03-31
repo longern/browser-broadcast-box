@@ -83,6 +83,7 @@ export default function IngestForm({
     const response = await fetch("/api/live_inputs", {
       method: "POST",
       headers: { Authorization: `Bearer ${authToken}` },
+      body: JSON.stringify({ meta: { name: title } }),
     });
     const live_input_response = await response.json();
     if (!live_input_response.success) {

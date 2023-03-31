@@ -38,7 +38,11 @@ export default async function negotiateConnectionWithClientOffer(
   });
   if (response.status >= 400) {
     const errorMessage = await response.text();
-    throw Error(errorMessage);
+    try {
+      throw new Error(JSON.parse(errorMessage).messages[0].message);
+    } catch (_err) {
+      throw new Error(errorMessage);
+    }
   }
   let answerSDP = await response.text();
   await peerConnection.setRemoteDescription(
