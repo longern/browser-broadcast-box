@@ -80,17 +80,25 @@ export default function IngestForm({
   }, []);
 
   async function createLiveInput() {
-    const response = await fetch("/api/live_inputs", {
+    const response = await fetch("/api/channels/me/live_input", {
       method: "POST",
       headers: { Authorization: `Bearer ${authToken}` },
       body: JSON.stringify({ meta: { name: title } }),
     });
-    const live_input_response = await response.json();
-    if (!live_input_response.success) {
-      window.alert(live_input_response.messages[0].message);
+    if (response.status === 409) {
+      const live_input_response = await fetch("/api/channels/me/live_input", {
+        headers: { Authorization: `Bearer ${authToken}` },
+      });
+      const live_input_body = await live_input_response.json();
+      setLiveUrl(live_input_body.result.webRTC.url);
       return;
     }
-    setLiveUrl(live_input_response.result.webRTC.url);
+    const live_input_body = await response.json();
+    if (!live_input_body.success) {
+      window.alert(live_input_body.messages[0].message);
+      return;
+    }
+    setLiveUrl(live_input_body.result.webRTC.url);
   }
 
   async function handleDeviceChange(e: SelectChangeEvent) {

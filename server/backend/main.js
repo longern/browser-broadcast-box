@@ -74,11 +74,11 @@ async function handleWhipEndpoint(req) {
   const resourceId = crypto.randomUUID();
   resources[resourceId] = { peerConnection, dataChannel: null };
 
+  channel.resource = resourceId;
+  stream = new MediaStream();
+  videoElement.srcObject = stream;
   peerConnection.addEventListener("track", (event) => {
-    stream = event.streams[0];
-    channel.resource = resourceId;
-    // Force audio decoding otherwise the audio will be silent.
-    videoElement.srcObject = stream;
+    stream.addTrack(event.track);
   });
 
   peerConnection.addEventListener("datachannel", (event) => {
@@ -232,7 +232,7 @@ async function handleWhepEndpoint(req) {
 }
 
 /** @param {Request} req */
-async function handleResource(req) {
+function handleResource(req) {
   const url = new URL(req.url);
   if (req.method !== "DELETE") {
     return new Response("405 Method Not Allowed", {
@@ -252,37 +252,13 @@ async function handleResource(req) {
   return new Response(null, { status: 204 });
 }
 
-async function handleChannels(req) {
-  if (req.method !== "GET") {
-    return new Response("405 Method Not Allowed", {
-      status: 405,
-      headers: { Allow: "GET" },
-    });
-  }
-
-  const channels = [];
-  if (channel.resource) {
-    channels.push({
-      id: channel.resource,
-    });
-  }
-
-  return new Response(JSON.stringify({ channels }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
 /** @param {Request} req */
 async function handlePath(req) {
   const url = new URL(req.url);
-  switch (url.pathname) {
-    case "/api/whip":
-      return handleWhipEndpoint(req);
-    case "/api/whep":
-      return handleWhepEndpoint(req);
-    case "/api/channels":
-      return handleChannels(req);
+  if (url.pathname.startsWith("/api/webrtc/live/")) {
+    return handleWhipEndpoint(req);
+  } else if (url.pathname.startsWith("/api/webrtc/play/")) {
+    return handleWhepEndpoint(req);
   }
 
   if (url.pathname.startsWith("/resource/")) {

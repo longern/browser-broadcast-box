@@ -95,6 +95,6 @@ export class D1Database {
   }
 
   exec(sql: string) {
-    return new Promise((resolve) => resolve(this.#db.query(sql)));
+    return Promise.resolve(this.#db.query(sql));
   }
 }

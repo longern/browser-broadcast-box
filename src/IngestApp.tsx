@@ -93,12 +93,10 @@ function IngestApp() {
           const headers = new Headers();
           headers.set("Content-Type", "application/json");
           if (authToken) headers.set("Authorization", `Bearer ${authToken}`);
-          fetch("/api/channels", {
-            method: "PUT",
+          fetch("/api/channels/me", {
+            method: "PATCH",
             headers,
             body: JSON.stringify({
-              id: "me",
-              live: true,
               title,
               thumbnail: canvas.toDataURL("image/jpeg", 0.5),
             }),

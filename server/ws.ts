@@ -37,6 +37,8 @@ export function websocketHandler(req: Request): Response {
     const env: Record<string, string> = {};
     const envPublicIp = Deno.env.get("PUBLIC_IP");
     if (envPublicIp) env.PUBLIC_IP = envPublicIp;
+    const envBearerToken = Deno.env.get("BEARER_TOKEN");
+    if (envBearerToken) env.BEARER_TOKEN = envBearerToken;
     socket.send(JSON.stringify({ type: "env", items: env }));
     logger.log("Backend socket connected");
   };

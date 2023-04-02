@@ -319,7 +319,14 @@ function EgressApp() {
   useEffect(() => {
     const searchParams = new URLSearchParams(window.location.search);
     const channel = searchParams.get("c");
-    if (channel) handleWatchStream({ liveUrl: "/api/whep" });
+    if (channel) {
+      fetch(`/api/channels/${channel}/live_input`).then(async (response) => {
+        const liveUrlBody = await response.json();
+        if (!liveUrlBody.result) return;
+        const liveUrl = liveUrlBody.result.webRTCPlayback.url;
+        handleWatchStream({ liveUrl });
+      });
+    }
     return () => {
       if (client.current) client.current.peerConnection.close();
     };

@@ -26,7 +26,7 @@ app.use("/api/*", (c, next) => {
   if (
     !c.env.BEARER_TOKEN ||
     !["POST", "PATCH", "DELETE"].includes(c.req.method) ||
-    c.req.path === "/api/whep"
+    c.req.path.startsWith("/api/webrtc/play/")
   )
     return next();
   return bearerAuth({ token: c.env.BEARER_TOKEN as string })(c, next);
@@ -48,10 +48,7 @@ app.post("/api/channels", async (c) => {
     .prepare("INSERT INTO channels VALUES (?, ?, ?, ?)")
     .bind(id, null, title, thumbnail)
     .first();
-  if (row) {
-    c.status(409);
-    return c.json({ error: "Channel already exists" });
-  }
+  if (row) throw new HTTPException(409, { message: "Channel already exists" });
   const channel = {
     id: id,
     live: false,
@@ -107,14 +104,48 @@ app.patch("/api/channels/:id", async (c) => {
       return `${key} = ?`;
     })
     .join(", ");
-  const count = await db
+  await db
     .prepare(`UPDATE channels SET ${segment} WHERE id = ?`)
     .bind(...Object.values(body), id)
-    .first();
-  if (!count) {
-    throw new HTTPException(404, { message: "Channel not found" });
-  }
+    .run();
   return c.json(body);
+});
+
+app.get("/api/channels/:id/live_input", async (c) => {
+  const id = c.req.param("id");
+  const db = c.env.DB;
+  const channel = (await db
+    .prepare("SELECT id, live_input FROM channels WHERE id = ?")
+    .bind(id)
+    .first()) as { id: string; live_input: string | null } | null;
+  if (!channel) throw new HTTPException(404, { message: "Channel not found" });
+  if (!channel.live_input)
+    throw new HTTPException(404, { message: "Live input not found" });
+
+  const response = await app.fetch(
+    new Request(new URL(`/api/live_inputs/${channel.live_input}`, c.req.url), {
+      method: "GET",
+      headers: { Authorization: `Bearer ${c.env.BEARER_TOKEN}` },
+    }),
+    c.env
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      await db
+        .prepare("UPDATE channels SET live_input = NULL WHERE id = ?")
+        .bind(id)
+        .run();
+      throw new HTTPException(404, { message: "Live input not found" });
+    }
+    throw new HTTPException(response.status as any, {
+      res: new Response(await response.text(), { status: response.status }),
+    });
+  }
+
+  const body = await response.json();
+  const { result } = body;
+  return c.json({ success: true, result });
 });
 
 app.post("/api/channels/:id/live_input", async (c) => {
@@ -125,21 +156,45 @@ app.post("/api/channels/:id/live_input", async (c) => {
     .bind(id)
     .first()) as { id: string; live_input: string | null } | null;
   if (!channel) throw new HTTPException(404, { message: "Channel not found" });
-  if (channel.live_input)
-    throw new HTTPException(409, { message: "Live input already exists" });
-  const response = await app.fetch(new Request("/api/live_inputs"), {
-    method: "POST",
-    headers: { Authorization: c.env.BEARER_TOKEN },
-  });
+
+  const authHeaders = { Authorization: `Bearer ${c.env.BEARER_TOKEN}` };
+  if (channel.live_input) {
+    const response = await app.fetch(
+      new Request(
+        new URL(`/api/live_inputs/${channel.live_input}`, c.req.url),
+        { method: "GET", headers: authHeaders }
+      ),
+      c.env
+    );
+    if (response.ok)
+      throw new HTTPException(409, { message: "Live input already exists" });
+    if (response.status !== 404)
+      throw new HTTPException(response.status as any, {
+        res: new Response(await response.text(), { status: response.status }),
+      });
+    channel.live_input = null;
+  }
+
+  const response = await app.fetch(
+    new Request(new URL("/api/live_inputs", c.req.url), {
+      method: "POST",
+      headers: authHeaders,
+      body: c.req.body,
+    }),
+    c.env
+  );
   if (!response.ok)
-    throw new HTTPException(500, { message: await response.text() });
+    throw new HTTPException(response.status as any, {
+      res: new Response(await response.text(), { status: response.status }),
+    });
+
   const body = await response.json();
-  channel.live_input = body.result.uid;
+  const live_input = body.result;
   await db
     .prepare("UPDATE channels SET live_input = ? WHERE id = ?")
-    .bind(channel.live_input, id)
+    .bind(live_input.uid, id)
     .run();
-  return c.json({ success: true, result: channel });
+  return c.json({ success: true, result: live_input });
 });
 
 app.delete("/api/channels/:id/live_input", async (c) => {
@@ -153,14 +208,11 @@ app.delete("/api/channels/:id/live_input", async (c) => {
   if (!channel.live_input)
     throw new HTTPException(404, { message: "Live input not found" });
   const response = await app.fetch(
-    new Request(`/api/live_inputs/${channel.live_input}`),
-    {
+    new Request(new URL(`/api/live_inputs/${channel.live_input}`, c.req.url), {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: c.env.BEARER_TOKEN,
-      },
-    }
+      headers: { Authorization: `Bearer ${c.env.BEARER_TOKEN}` },
+    }),
+    c.env
   );
   if (!response.ok)
     throw new HTTPException(500, { message: await response.text() });

@@ -37,7 +37,7 @@ export default class WHIPClient extends EventTarget {
     });
 
     mediaStream.getTracks().forEach((track) => {
-      this.peerConnection.addTrack(track, mediaStream);
+      this.peerConnection.addTransceiver(track, { direction: "sendonly" });
     });
 
     const transceivers = this.peerConnection.getTransceivers();
