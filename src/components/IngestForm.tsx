@@ -13,7 +13,8 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { Add } from "@mui/icons-material";
 
 let permissionGranted = false;
 const isMobile =
@@ -42,6 +43,152 @@ async function requestPermission() {
   } catch (e) {}
 }
 
+function CloudFlareStreamFormGroup({
+  onLiveUrlChange,
+}: {
+  onLiveUrlChange: (liveUrl: string) => void;
+}) {
+  const [accountId, setAccountId] = useState("");
+  const [apiToken, setApiToken] = useState("");
+  const [verified, setVerified] = useState(false);
+  const [liveInputs, setLiveInputs] = useState([] as any[]);
+  const [curLiveInput, setCurLiveInput] = useState("");
+  const [liveUrl, setLiveUrl] = useState("");
+
+  const handleListLiveInputs = useCallback(
+    (accountId: string, apiToken: string) => {
+      if (!accountId || !apiToken) return;
+      fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${apiToken}` },
+          mode: "cors",
+        }
+      ).then(async (res) => {
+        const data = await res.json();
+        if (data.success) {
+          setLiveInputs(data.result);
+          setVerified(true);
+        }
+      });
+    },
+    []
+  );
+
+  const handleCreateLiveInput = useCallback(
+    (accountId: string, apiToken: string) => {
+      if (!accountId || !apiToken) return;
+      fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${apiToken}` },
+          mode: "cors",
+        }
+      ).then(async (res) => {
+        const data = await res.json();
+        if (data.success) {
+          setLiveInputs((liveInputs) => [...liveInputs, data.result]);
+          setCurLiveInput(data.result.uid);
+        }
+      });
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (!curLiveInput) return;
+    fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${curLiveInput}`,
+      {
+        method: "GET",
+        headers: { Authorization: `Bearer ${apiToken}` },
+        mode: "cors",
+      }
+    ).then(async (res) => {
+      const data = await res.json();
+      if (data.success) {
+        setLiveUrl(data.result.webRTC.url);
+      }
+    });
+  }, [accountId, apiToken, curLiveInput]);
+
+  useEffect(() => {
+    onLiveUrlChange(liveUrl);
+  }, [liveUrl, onLiveUrlChange]);
+
+  return verified ? (
+    <>
+      <Stack direction="row" spacing={1}>
+        <FormControl fullWidth size="small">
+          <InputLabel id="live-input-label">Live Input</InputLabel>
+          <Select
+            label="Live Input"
+            value={curLiveInput}
+            fullWidth
+            onChange={(e: SelectChangeEvent) => {
+              setCurLiveInput(e.target.value);
+            }}
+          >
+            {!liveInputs.length && (
+              <MenuItem disabled value="">
+                <em>No live inputs</em>
+              </MenuItem>
+            )}
+            {liveInputs.map((liveInput) => (
+              <MenuItem key={liveInput.uid} value={liveInput.uid}>
+                {liveInput.meta.name ?? liveInput.uid}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+        <IconButton
+          aria-label="add live input"
+          size="small"
+          onClick={() => handleCreateLiveInput(accountId, apiToken)}
+        >
+          <Add />
+        </IconButton>
+      </Stack>
+      <TextField
+        label="Live URL"
+        value={liveUrl}
+        size="small"
+        disabled
+      ></TextField>
+    </>
+  ) : (
+    <>
+      <TextField
+        label="Account ID"
+        value={accountId}
+        size="small"
+        fullWidth
+        autoComplete="username"
+        onChange={(e) => setAccountId(e.target.value)}
+      />
+      <TextField
+        label="API Token"
+        value={apiToken}
+        type="password"
+        size="small"
+        fullWidth
+        onChange={(e) => setApiToken(e.target.value)}
+      />
+      <Button
+        variant="contained"
+        color="primary"
+        fullWidth
+        disabled={!accountId || !apiToken}
+        onClick={() => handleListLiveInputs(accountId, apiToken)}
+      >
+        Connect
+      </Button>
+    </>
+  );
+}
+
 export default function IngestForm({
   onDeviceChange,
   onStartStream,
@@ -53,6 +200,7 @@ export default function IngestForm({
     title?: string;
   }) => void;
 }) {
+  const [service, setService] = useState("my_channel");
   const [liveUrl, setLiveUrl] = useState("");
   const [authToken, setAuthToken] = useState("");
   const [title, setTitle] = useState("Welcome!");
@@ -115,69 +263,90 @@ export default function IngestForm({
   return (
     <Box component="form">
       <Stack direction="column" spacing={3}>
-        <Stack direction="row" spacing={1}>
-          <TextField
-            id="live-url"
-            value={liveUrl}
-            label="Live URL"
+        <FormControl fullWidth>
+          <InputLabel id="service-label">Service</InputLabel>
+          <Select
+            id="service"
+            label="Service"
+            value={service}
             size="small"
-            required
-            onChange={(e) => setLiveUrl(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
+            onChange={(e) => setService(e.target.value)}
+          >
+            <MenuItem value="my_channel">My Channel</MenuItem>
+            <MenuItem value="cf_stream">CloudFlare Stream</MenuItem>
+            <MenuItem value="whip">WHIP Endpoint</MenuItem>
+          </Select>
+        </FormControl>
+        {service === "my_channel" ? (
+          <>
+            <Stack direction="row" spacing={1}>
+              <TextField
+                id="live-url"
+                value={liveUrl}
+                label="Live URL"
+                size="small"
+                required
+                onChange={(e) => setLiveUrl(e.target.value)}
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        aria-label="clear live url"
+                        sx={{ visibility: liveUrl ? "visible" : "hidden" }}
+                        onClick={() => setLiveUrl("")}
+                        edge="end"
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ flexGrow: 1 }}
+              ></TextField>
+              <Button
+                variant="contained"
+                size="small"
+                color="primary"
+                disabled={!authToken}
+                onClick={createLiveInput}
+              >
+                Create
+              </Button>
+            </Stack>
+            <input
+              type="text"
+              name="username"
+              hidden
+              value="default"
+              readOnly
+              autoComplete="username"
+            />
+            <TextField
+              id="auth-token"
+              value={authToken}
+              label="Auth Token"
+              size="small"
+              type={"password"}
+              onChange={(e) => setAuthToken(e.target.value)}
+              InputProps={{
+                endAdornment: (
                   <IconButton
-                    aria-label="clear live url"
-                    sx={{ visibility: liveUrl ? "visible" : "hidden" }}
-                    onClick={() => setLiveUrl("")}
+                    aria-label="clear auth token"
+                    sx={{ visibility: authToken ? "visible" : "hidden" }}
+                    onClick={() => setAuthToken("")}
                     edge="end"
                   >
                     <CloseIcon />
                   </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{ flexGrow: 1 }}
-          ></TextField>
-          <Button
-            variant="contained"
-            size="small"
-            color="primary"
-            disabled={!authToken}
-            onClick={createLiveInput}
-          >
-            Create
-          </Button>
-        </Stack>
-        {/* Hidden input username for save password */}
-        <input
-          type="text"
-          name="username"
-          hidden
-          value="default"
-          readOnly
-          autoComplete="username"
-        />
-        <TextField
-          id="auth-token"
-          value={authToken}
-          label="Auth Token"
-          size="small"
-          type={"password"}
-          onChange={(e) => setAuthToken(e.target.value)}
-          InputProps={{
-            endAdornment: (
-              <IconButton
-                aria-label="clear auth token"
-                sx={{ visibility: authToken ? "visible" : "hidden" }}
-                onClick={() => setAuthToken("")}
-                edge="end"
-              >
-                <CloseIcon />
-              </IconButton>
-            ),
-          }}
-        ></TextField>
+                ),
+              }}
+            ></TextField>
+          </>
+        ) : service === "cf_stream" ? (
+          <CloudFlareStreamFormGroup onLiveUrlChange={setLiveUrl} />
+        ) : (
+          <></>
+        )}
         <TextField
           id="title"
           value={title}
