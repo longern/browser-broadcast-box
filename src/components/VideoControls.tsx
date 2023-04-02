@@ -37,6 +37,7 @@ export default function VideoControls({
       {paused ? (
         <IconButton
           aria-label="pause"
+          sx={{ color: "white" }}
           onClick={() => {
             videoRef?.current?.pause();
           }}
@@ -46,6 +47,7 @@ export default function VideoControls({
       ) : (
         <IconButton
           aria-label="play"
+          sx={{ color: "white" }}
           onClick={() => {
             videoRef?.current?.play();
           }}
@@ -57,6 +59,7 @@ export default function VideoControls({
       {muted ? (
         <IconButton
           aria-label="unmute"
+          sx={{ color: "white" }}
           onClick={() => {
             if (videoRef?.current) videoRef.current.muted = false;
           }}
@@ -66,6 +69,7 @@ export default function VideoControls({
       ) : (
         <IconButton
           aria-label="mute"
+          sx={{ color: "white" }}
           onClick={() => {
             if (videoRef?.current) videoRef.current.muted = true;
           }}
@@ -76,6 +80,7 @@ export default function VideoControls({
       {fullscreen ? (
         <IconButton
           aria-label="exit fullscreen"
+          sx={{ color: "white" }}
           onClick={() => {
             if (onFullscreenChange) onFullscreenChange(false);
             else document.exitFullscreen();
@@ -86,6 +91,7 @@ export default function VideoControls({
       ) : (
         <IconButton
           aria-label="fullscreen"
+          sx={{ color: "white" }}
           onClick={() => {
             if (onFullscreenChange) onFullscreenChange(true);
             else videoRef?.current?.requestFullscreen();

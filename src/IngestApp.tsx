@@ -188,7 +188,8 @@ function IngestApp() {
           justifyContent: "center",
           alignItems: "center",
           borderRadius: 9999,
-          backgroundColor: "rgba(127, 127, 127, 0.5)",
+          backgroundColor: "rgba(64, 64, 64, 0.5)",
+          color: "white",
         }}
       >
         {views}
