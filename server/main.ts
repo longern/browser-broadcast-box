@@ -89,8 +89,13 @@ async function init() {
 
   if (Deno.env.get("BEARER_TOKEN")) console.log("Bearer token is set");
 
-  const db = Deno.env.get("DB") || "./db.sqlite3";
-  bindings = { ...Deno.env.toObject(), DB: new D1Database(db) };
+  const dbPath = Deno.env.get("DB") || "./db.sqlite3";
+  const DB = new D1Database(dbPath);
+  const migrations = new TextDecoder().decode(
+    Deno.readFileSync("./server/migrations.sql")
+  );
+  DB.exec(migrations);
+  bindings = { ...Deno.env.toObject(), DB };
 }
 
 init();

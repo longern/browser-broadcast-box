@@ -322,6 +322,18 @@ export default function IngestForm({
     setLiveUrl(live_input_body.result.webRTC.url);
   }
 
+  async function deleteLiveInput() {
+    const response = await fetch("/api/channels/me/live_input", {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${authToken}` },
+    });
+    if (!response.ok) {
+      window.alert("Failed to delete live input");
+      return;
+    }
+    setLiveUrl("");
+  }
+
   async function handleDeviceChange(e: SelectChangeEvent) {
     if (onDeviceChange)
       await onDeviceChange(e.target.value === "none" ? null : e.target.value);
@@ -354,19 +366,20 @@ export default function IngestForm({
           <>
             <Stack direction="row" spacing={1}>
               <TextField
-                id="live-url"
-                value={liveUrl}
-                label="Live URL"
+                id="auth-token"
+                value={authToken}
+                label="Auth Token"
                 size="small"
-                required
-                onChange={(e) => setLiveUrl(e.target.value)}
+                type="password"
+                fullWidth
+                onChange={(e) => setAuthToken(e.target.value)}
                 InputProps={{
                   endAdornment: (
                     <InputAdornment position="end">
                       <IconButton
-                        aria-label="clear live url"
-                        sx={{ visibility: liveUrl ? "visible" : "hidden" }}
-                        onClick={() => setLiveUrl("")}
+                        aria-label="clear auth token"
+                        sx={{ visibility: authToken ? "visible" : "hidden" }}
+                        onClick={() => setAuthToken("")}
                         edge="end"
                       >
                         <Close />
@@ -374,18 +387,70 @@ export default function IngestForm({
                     </InputAdornment>
                   ),
                 }}
-                sx={{ flexGrow: 1 }}
               ></TextField>
-              <Button
-                variant="contained"
-                size="small"
-                color="primary"
-                disabled={!authToken}
-                onClick={createLiveInput}
-              >
-                Create
-              </Button>
+              {!liveUrl ? (
+                <Button
+                  variant="contained"
+                  size="small"
+                  color="primary"
+                  disabled={!authToken}
+                  onClick={createLiveInput}
+                >
+                  Create
+                </Button>
+              ) : (
+                <Button
+                  variant="contained"
+                  size="small"
+                  color="error"
+                  onClick={deleteLiveInput}
+                >
+                  Delete
+                </Button>
+              )}
             </Stack>
+            <input
+              type="text"
+              name="username"
+              hidden
+              value="default"
+              readOnly
+              autoComplete="username"
+            />
+            <TextField
+              id="live-url"
+              value={liveUrl}
+              label="Live URL"
+              size="small"
+              disabled
+            ></TextField>
+          </>
+        ) : service === "cf_stream" ? (
+          <CloudFlareStreamFormGroup onLiveUrlChange={setLiveUrl} />
+        ) : (
+          <>
+            <TextField
+              id="live-url"
+              value={liveUrl}
+              label="Live URL"
+              size="small"
+              required
+              onChange={(e) => setLiveUrl(e.target.value)}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label="clear live url"
+                      sx={{ visibility: liveUrl ? "visible" : "hidden" }}
+                      onClick={() => setLiveUrl("")}
+                      edge="end"
+                    >
+                      <Close />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            ></TextField>
             <input
               type="text"
               name="username"
@@ -415,10 +480,6 @@ export default function IngestForm({
               }}
             ></TextField>
           </>
-        ) : service === "cf_stream" ? (
-          <CloudFlareStreamFormGroup onLiveUrlChange={setLiveUrl} />
-        ) : (
-          <></>
         )}
         <TextField
           id="title"

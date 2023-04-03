@@ -214,7 +214,7 @@ app.delete("/api/channels/:id/live_input", async (c) => {
     }),
     c.env
   );
-  if (!response.ok)
+  if (!response.ok && response.status !== 404)
     throw new HTTPException(500, { message: await response.text() });
   channel.live_input = null;
   await db
