@@ -71,8 +71,7 @@ app.post("/" as string, async (c) => {
     .prepare("INSERT INTO live_inputs (uid, created, meta) VALUES (?, ?, ?)")
     .bind(uid, created, meta ? JSON.stringify(meta) : null)
     .run();
-  const url = new URL(c.req.url);
-  const origin = c.req.headers.get("origin") || url.origin;
+  const origin = c.req.headers.get("origin") || "";
   const secret = await createSecret(uid, c.env.BEARER_TOKEN!);
   return c.json({
     success: true,
@@ -95,15 +94,10 @@ app.get("/:uid", async (c) => {
     .first();
   if (!live_input)
     throw new HTTPException(404, { message: `Live input ${uid} not found` });
-  const url = new URL(c.req.url);
-  const origin = c.req.headers.get("origin") || url.origin;
+  const origin = c.req.headers.get("origin") || "";
   const secret = await createSecret(uid, c.env.BEARER_TOKEN!);
-  live_input.webRTC = {
-    url: `${origin}/api/webrtc/live/${secret}`,
-  };
-  live_input.webRTCPlayback = {
-    url: `${origin}/api/webrtc/play/${uid}`,
-  };
+  live_input.webRTC = { url: `${origin}/api/webrtc/live/${secret}` };
+  live_input.webRTCPlayback = { url: `${origin}/api/webrtc/play/${uid}` };
   return c.json({ success: true, result: live_input });
 });
 
