@@ -2,19 +2,20 @@ import {
   Box,
   Button,
   FormControl,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   InputLabel,
   MenuItem,
+  Radio,
+  RadioGroup,
   Select,
   SelectChangeEvent,
   Stack,
   TextField,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import RefreshIcon from "@mui/icons-material/Refresh";
 import { useCallback, useEffect, useState } from "react";
-import { Add } from "@mui/icons-material";
+import { Close, Delete, Refresh } from "@mui/icons-material";
 
 let permissionGranted = false;
 const isMobile =
@@ -48,12 +49,17 @@ function CloudFlareStreamFormGroup({
 }: {
   onLiveUrlChange: (liveUrl: string) => void;
 }) {
+  const [verified, setVerified] = useState(false);
+  const [liveUrl, setLiveUrl] = useState("");
+
   const [accountId, setAccountId] = useState("");
   const [apiToken, setApiToken] = useState("");
-  const [verified, setVerified] = useState(false);
+  const [apiTokenHelperText, setApiTokenHelperText] = useState("");
+
+  const [useExisting, setUseExisting] = useState("false");
+  const [title, setTitle] = useState("");
   const [liveInputs, setLiveInputs] = useState([] as any[]);
   const [curLiveInput, setCurLiveInput] = useState("");
-  const [liveUrl, setLiveUrl] = useState("");
 
   const handleListLiveInputs = useCallback(
     (accountId: string, apiToken: string) => {
@@ -65,13 +71,17 @@ function CloudFlareStreamFormGroup({
           headers: { Authorization: `Bearer ${apiToken}` },
           mode: "cors",
         }
-      ).then(async (res) => {
-        const data = await res.json();
-        if (data.success) {
-          setLiveInputs(data.result);
-          setVerified(true);
-        }
-      });
+      )
+        .then(async (res) => {
+          const data = await res.json();
+          if (data.success) {
+            setLiveInputs(data.result);
+            setVerified(true);
+          }
+        })
+        .catch((_e) => {
+          setApiTokenHelperText("Invalid account ID or API token");
+        });
     },
     []
   );
@@ -79,11 +89,14 @@ function CloudFlareStreamFormGroup({
   const handleCreateLiveInput = useCallback(
     (accountId: string, apiToken: string) => {
       if (!accountId || !apiToken) return;
+      let body: string | null = null;
+      if (title) body = JSON.stringify({ meta: { name: title } });
       fetch(
         `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs`,
         {
           method: "POST",
           headers: { Authorization: `Bearer ${apiToken}` },
+          body,
           mode: "cors",
         }
       ).then(async (res) => {
@@ -94,11 +107,38 @@ function CloudFlareStreamFormGroup({
         }
       });
     },
+    [title]
+  );
+
+  const handleDeleteLiveInput = useCallback(
+    (accountId: string, apiToken: string, liveInputId: string) => {
+      if (!accountId || !apiToken) return;
+      fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${liveInputId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${apiToken}` },
+          mode: "cors",
+        }
+      ).then(async (res) => {
+        const data = await res.json();
+        if (data.success) {
+          setLiveInputs((liveInputs) =>
+            liveInputs.filter((liveInput) => liveInput.uid !== liveInputId)
+          );
+          setCurLiveInput("");
+        }
+      });
+    },
     []
   );
 
   useEffect(() => {
-    if (!curLiveInput) return;
+    if (!curLiveInput) {
+      setLiveUrl("");
+      return;
+    }
+
     fetch(
       `https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs/${curLiveInput}`,
       {
@@ -120,37 +160,67 @@ function CloudFlareStreamFormGroup({
 
   return verified ? (
     <>
-      <Stack direction="row" spacing={1}>
-        <FormControl fullWidth size="small">
-          <InputLabel id="live-input-label">Live Input</InputLabel>
-          <Select
-            label="Live Input"
-            value={curLiveInput}
-            fullWidth
-            onChange={(e: SelectChangeEvent) => {
-              setCurLiveInput(e.target.value);
-            }}
-          >
-            {!liveInputs.length && (
-              <MenuItem disabled value="">
-                <em>No live inputs</em>
-              </MenuItem>
-            )}
-            {liveInputs.map((liveInput) => (
-              <MenuItem key={liveInput.uid} value={liveInput.uid}>
-                {liveInput.meta.name ?? liveInput.uid}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <IconButton
-          aria-label="add live input"
-          size="small"
-          onClick={() => handleCreateLiveInput(accountId, apiToken)}
+      <FormControl>
+        <RadioGroup
+          row
+          value={useExisting}
+          onChange={(e) => {
+            setUseExisting(e.target.value);
+          }}
         >
-          <Add />
-        </IconButton>
-      </Stack>
+          <FormControlLabel value="false" control={<Radio />} label="Create" />
+          <FormControlLabel value="true" control={<Radio />} label="Reuse" />
+        </RadioGroup>
+      </FormControl>
+      {useExisting === "true" ? (
+        <Stack direction="row" spacing={1}>
+          <FormControl fullWidth size="small">
+            <InputLabel id="live-input-label">Live Input</InputLabel>
+            <Select
+              label="Live Input"
+              value={curLiveInput}
+              fullWidth
+              onChange={(e: SelectChangeEvent) => {
+                setCurLiveInput(e.target.value);
+              }}
+            >
+              {!liveInputs.length && (
+                <MenuItem disabled value="">
+                  <em>No live inputs</em>
+                </MenuItem>
+              )}
+              {liveInputs.map((liveInput) => (
+                <MenuItem key={liveInput.uid} value={liveInput.uid}>
+                  {liveInput.meta.name ?? liveInput.uid}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <IconButton
+            aria-label="delete live input"
+            onClick={() =>
+              handleDeleteLiveInput(accountId, apiToken, curLiveInput)
+            }
+          >
+            <Delete />
+          </IconButton>
+        </Stack>
+      ) : (
+        <>
+          <TextField
+            label="Title"
+            value={title}
+            size="small"
+            onChange={(e) => setTitle(e.target.value)}
+          ></TextField>
+          <Button
+            variant="contained"
+            onClick={() => handleCreateLiveInput(accountId, apiToken)}
+          >
+            Create
+          </Button>
+        </>
+      )}
       <TextField
         label="Live URL"
         value={liveUrl}
@@ -163,6 +233,7 @@ function CloudFlareStreamFormGroup({
       <TextField
         label="Account ID"
         value={accountId}
+        error={!!apiTokenHelperText}
         size="small"
         fullWidth
         autoComplete="username"
@@ -171,6 +242,8 @@ function CloudFlareStreamFormGroup({
       <TextField
         label="API Token"
         value={apiToken}
+        error={!!apiTokenHelperText}
+        helperText={apiTokenHelperText}
         type="password"
         size="small"
         fullWidth
@@ -262,7 +335,7 @@ export default function IngestForm({
 
   return (
     <Box component="form">
-      <Stack direction="column" spacing={3}>
+      <Stack direction="column" spacing={2}>
         <FormControl fullWidth>
           <InputLabel id="service-label">Service</InputLabel>
           <Select
@@ -296,7 +369,7 @@ export default function IngestForm({
                         onClick={() => setLiveUrl("")}
                         edge="end"
                       >
-                        <CloseIcon />
+                        <Close />
                       </IconButton>
                     </InputAdornment>
                   ),
@@ -336,7 +409,7 @@ export default function IngestForm({
                     onClick={() => setAuthToken("")}
                     edge="end"
                   >
-                    <CloseIcon />
+                    <Close />
                   </IconButton>
                 ),
               }}
@@ -362,7 +435,7 @@ export default function IngestForm({
                 onClick={() => setTitle("")}
                 edge="end"
               >
-                <CloseIcon />
+                <Close />
               </IconButton>
             ),
           }}
@@ -388,7 +461,7 @@ export default function IngestForm({
             </Select>
           </FormControl>
           <IconButton aria-label="refresh devices" onClick={init}>
-            <RefreshIcon />
+            <Refresh />
           </IconButton>
         </Stack>
         <Button
