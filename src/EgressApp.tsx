@@ -4,6 +4,7 @@ import { ArrowBack, MoreVert, Send, Share } from "@mui/icons-material";
 import {
   AppBar,
   Box,
+  createTheme,
   Dialog,
   DialogContent,
   Grid,
@@ -13,17 +14,22 @@ import {
   SwipeableDrawer,
   TextField,
   Theme,
+  ThemeProvider,
   Toolbar,
   useMediaQuery,
 } from "@mui/material";
 
-import VideoStream from "./IngestDesktop/VideoStream";
-import WHEPClient from "./WHEPClient";
 import EgressForm from "./components/EgressForm";
 import type { Message } from "./components/Messages";
 import Messages from "./components/Messages";
-import VideoOverlay from "./components/VideoOverlay";
 import VideoControls from "./components/VideoControls";
+import VideoOverlay from "./components/VideoOverlay";
+import VideoStream from "./IngestDesktop/VideoStream";
+import WHEPClient from "./WHEPClient";
+
+const darkTheme = createTheme({
+  palette: { mode: "dark" },
+});
 
 function VideoContainer({
   stream,
@@ -45,7 +51,8 @@ function VideoContainer({
         setFullscreen(true);
         const isVideoLandscape =
           videoRef.current!.videoWidth > videoRef.current!.videoHeight;
-        if (isVideoLandscape) window.screen.orientation.lock("landscape");
+        if (isVideoLandscape)
+          window.screen.orientation.lock("landscape").catch(() => {});
       });
     } else if (!fullscreen && document.fullscreenElement) {
       document.exitFullscreen().then(() => {
@@ -95,13 +102,15 @@ function VideoContainer({
       }
       style={{ ...style, position: "relative" }}
     >
-      <VideoControls
-        videoRef={videoRef}
-        paused={paused}
-        muted={muted}
-        fullscreen={fullscreen}
-        onFullscreenChange={handleFullscreenChange}
-      />
+      <ThemeProvider theme={darkTheme}>
+        <VideoControls
+          videoRef={videoRef}
+          paused={paused}
+          muted={muted}
+          fullscreen={fullscreen}
+          onFullscreenChange={handleFullscreenChange}
+        />
+      </ThemeProvider>
     </VideoOverlay>
   );
 }
@@ -196,7 +205,7 @@ function EgressMobileLandscapeStream({
           </SwipeableDrawer>
         </Toolbar>
       </AppBar>
-      <Box sx={{ aspectRatio: "16/9" }}>
+      <Box sx={{ aspectRatio: "16/9", minHeight: 0 }}>
         <VideoContainer stream={stream} />
       </Box>
       <Stack
@@ -237,7 +246,7 @@ function EgressMobilePortraitStream({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   return (
-    <>
+    <ThemeProvider theme={darkTheme}>
       <VideoStream
         ref={videoRef}
         stream={stream}
@@ -295,16 +304,31 @@ function EgressMobilePortraitStream({
             <TextField
               id="chat-input"
               aria-label="chat input"
-              variant="outlined"
+              variant="filled"
               fullWidth
               size="small"
               autoComplete="off"
+              sx={{
+                border: "none",
+                backgroundColor: "gray",
+                opacity: 0.5,
+                borderRadius: "9999px",
+                overflow: "hidden",
+                transition: "opacity 0.2s",
+                "&:focus-within": {
+                  opacity: 0.7,
+                },
+              }}
               onKeyDown={handleChatInput}
+              InputProps={{
+                disableUnderline: true,
+                hiddenLabel: true,
+              }}
             />
           </Stack>
         </Stack>
       </Box>
-    </>
+    </ThemeProvider>
   );
 }
 
@@ -337,16 +361,18 @@ function EgressApp() {
     const videoElement = document.createElement("video");
     videoElement.muted = true;
     videoElement.srcObject = stream;
-    videoElement.addEventListener(
-      "loadedmetadata",
-      () => {
-        setVideoSize({
-          width: videoElement.videoWidth,
-          height: videoElement.videoHeight,
-        });
-      },
-      { once: true }
-    );
+
+    function setSize() {
+      setVideoSize({
+        width: videoElement.videoWidth,
+        height: videoElement.videoHeight,
+      });
+    }
+    videoElement.addEventListener("loadedmetadata", setSize, { once: true });
+    videoElement.addEventListener("resize", setSize);
+    return () => {
+      videoElement.removeEventListener("resize", setSize);
+    };
   }, [stream]);
 
   async function handleWatchStream(options: { liveUrl: string }) {
