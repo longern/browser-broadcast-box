@@ -45,6 +45,14 @@ function IndexApp() {
     <div className="App">
       <AppBar position="static">
         <Toolbar variant="dense" disableGutters sx={{ placeItems: "stretch" }}>
+          <Button
+            href="/"
+            color="inherit"
+            aria-label="home"
+            sx={{ height: "100%" }}
+          >
+            <img src="/logo192.png" alt="logo" width="32" height="32" />
+          </Button>
           <Box sx={{ flexGrow: 1 }} />
           <Button href="#ingest" color="inherit">
             Live

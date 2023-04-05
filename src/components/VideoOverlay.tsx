@@ -38,6 +38,9 @@ const VideoOverlay = forwardRef(
             right: 0,
             bottom: 0,
             zIndex: 1,
+            backgroundImage: showControls
+              ? "linear-gradient(to top, black, transparent 48px)"
+              : "none",
           }}
           onClick={(ev) => {
             if (ev.target !== ev.currentTarget) return;

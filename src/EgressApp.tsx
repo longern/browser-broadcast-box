@@ -4,6 +4,7 @@ import { ArrowBack, MoreVert, Send, Share } from "@mui/icons-material";
 import {
   AppBar,
   Box,
+  Button,
   createTheme,
   Dialog,
   DialogContent,
@@ -70,6 +71,8 @@ function VideoContainer({
       setFullscreen(Boolean(document.fullscreenElement));
     }
     const video = videoRef.current!;
+    setPaused(video.paused);
+    setMuted(video.muted);
     video.addEventListener("play", play);
     video.addEventListener("pause", pause);
     video.addEventListener("volumechange", volumechange);
@@ -125,36 +128,50 @@ function EgressDesktop({
   handleChatInput: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
   return (
-    <Stack direction="row" sx={{ height: "100%" }}>
-      <VideoContainer stream={stream} />
-      <Stack
-        spacing={1}
-        sx={{
-          flexShrink: 0,
-          p: 1,
-          width: 360,
-          justifyContent: "space-between",
-        }}
-      >
-        <Messages messages={messages}></Messages>
-        <TextField
-          id="chat-input"
-          aria-label="chat input"
-          variant="outlined"
-          fullWidth
-          size="small"
-          autoComplete="off"
-          InputProps={{
-            endAdornment: (
-              <InputAdornment position="end">
-                <IconButton aria-label="send" edge="end">
-                  <Send />
-                </IconButton>
-              </InputAdornment>
-            ),
+    <Stack direction="column" sx={{ height: "100%" }}>
+      <AppBar position="static">
+        <Toolbar variant="dense" disableGutters>
+          <Button
+            href="/"
+            color="inherit"
+            aria-label="home"
+            sx={{ height: "100%" }}
+          >
+            <img src="/logo192.png" alt="logo" width="32" height="32" />
+          </Button>
+        </Toolbar>
+      </AppBar>
+      <Stack direction="row" sx={{ flexGrow: 1, minHeight: 0 }}>
+        <VideoContainer stream={stream} />
+        <Stack
+          spacing={1}
+          sx={{
+            flexShrink: 0,
+            p: 1,
+            width: 360,
+            justifyContent: "space-between",
           }}
-          onKeyDown={handleChatInput}
-        />
+        >
+          <Messages messages={messages}></Messages>
+          <TextField
+            id="chat-input"
+            aria-label="chat input"
+            variant="outlined"
+            fullWidth
+            size="small"
+            autoComplete="off"
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton aria-label="send" edge="end">
+                    <Send />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
+            onKeyDown={handleChatInput}
+          />
+        </Stack>
       </Stack>
     </Stack>
   );
@@ -197,7 +214,16 @@ function EgressMobileLandscapeStream({
           >
             <Grid>
               <Grid item>
-                <IconButton aria-label="share" size="large">
+                <IconButton
+                  aria-label="share"
+                  size="large"
+                  onClick={() => {
+                    navigator.share({
+                      text: "Watch live stream",
+                      url: window.location.href,
+                    });
+                  }}
+                >
                   <Share />
                 </IconButton>
               </Grid>
@@ -304,6 +330,7 @@ function EgressMobilePortraitStream({
             <TextField
               id="chat-input"
               aria-label="chat input"
+              placeholder="Say something..."
               variant="filled"
               fullWidth
               size="small"
@@ -408,8 +435,10 @@ function EgressApp() {
     }
   }
 
-  const mediaQuery = useMediaQuery((theme: Theme) =>
-    theme.breakpoints.up("sm")
+  const mediaQuery = useMediaQuery(
+    (theme: Theme) =>
+      `${theme.breakpoints.up("md")}
+      or (${theme.breakpoints.only("sm")} and (min-height: 540px))`
   );
   const Layout = mediaQuery
     ? EgressDesktop

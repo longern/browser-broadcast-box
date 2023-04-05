@@ -36,21 +36,21 @@ export default function VideoControls({
     >
       {paused ? (
         <IconButton
-          aria-label="pause"
-          onClick={() => {
-            videoRef?.current?.pause();
-          }}
-        >
-          <Pause />
-        </IconButton>
-      ) : (
-        <IconButton
           aria-label="play"
           onClick={() => {
             videoRef?.current?.play();
           }}
         >
           <PlayArrow />
+        </IconButton>
+      ) : (
+        <IconButton
+          aria-label="pause"
+          onClick={() => {
+            videoRef?.current?.pause();
+          }}
+        >
+          <Pause />
         </IconButton>
       )}
       <Box sx={{ flexGrow: 1 }} />
