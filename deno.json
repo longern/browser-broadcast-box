@@ -4,7 +4,7 @@
     "prod": "deno run -A server/main.ts"
   },
   "imports": {
-    "@cloudflare/workers-types": "./server/d1-adapter.ts",
+    "@cloudflare/workers-types": "./server/adapters/index.ts",
     "dotenv": "https://deno.land/std@0.181.0/dotenv/mod.ts",
     "hono": "https://deno.land/x/hono@v3.1.4/mod.ts",
     "hono/bearer-auth": "https://deno.land/x/hono@v3.1.4/middleware/bearer-auth/index.ts",
