@@ -359,29 +359,8 @@ function EgressMobilePortraitStream({
   );
 }
 
-function EgressApp() {
-  const [dialogOpen, setDialogOpen] = useState(true);
-  const [stream, setStream] = useState<MediaStream | undefined>(undefined);
-  const [messages, setMessages] = useState<Message[]>([]);
+function useVideoSize(stream?: MediaStream) {
   const [videoSize, setVideoSize] = useState({ width: 1920, height: 1080 });
-
-  const client = useRef<WHEPClient | null>(null);
-
-  useEffect(() => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const channel = searchParams.get("c");
-    if (channel) {
-      fetch(`/api/channels/${channel}/live_input`).then(async (response) => {
-        const liveUrlBody = await response.json();
-        if (!liveUrlBody.result) return;
-        const liveUrl = liveUrlBody.result.webRTCPlayback.url;
-        handleWatchStream({ liveUrl });
-      });
-    }
-    return () => {
-      if (client.current) client.current.peerConnection.close();
-    };
-  }, []);
 
   useEffect(() => {
     if (!stream) return;
@@ -401,6 +380,33 @@ function EgressApp() {
       videoElement.removeEventListener("resize", setSize);
     };
   }, [stream]);
+
+  return videoSize;
+}
+
+function EgressApp() {
+  const [dialogOpen, setDialogOpen] = useState(true);
+  const [stream, setStream] = useState<MediaStream | undefined>(undefined);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const videoSize = useVideoSize(stream);
+
+  const client = useRef<WHEPClient | null>(null);
+
+  useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    const channel = searchParams.get("c");
+    if (channel) {
+      fetch(`/api/channels/${channel}/live_input`).then(async (response) => {
+        const liveUrlBody = await response.json();
+        if (!liveUrlBody.result) return;
+        const liveUrl = liveUrlBody.result.webRTCPlayback.url;
+        handleWatchStream({ liveUrl });
+      });
+    }
+    return () => {
+      if (client.current) client.current.peerConnection.close();
+    };
+  }, []);
 
   async function handleWatchStream(options: { liveUrl: string }) {
     const { liveUrl } = options;
