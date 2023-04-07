@@ -414,6 +414,17 @@ function EgressApp() {
         }
       }
     );
+
+    client.current.dataChannel.addEventListener("message", (e) => {
+      const data = JSON.parse(e.data);
+      const { id, body: content } = data;
+      if (!id || !content) return;
+      setMessages((messages) => {
+        if (messages.some((message) => message.id === id)) return messages;
+        return [{ id, content }, ...messages];
+      });
+    });
+
     setStream(client.current.stream);
 
     setDialogOpen(false);

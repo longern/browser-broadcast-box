@@ -107,7 +107,7 @@ function IngestApp() {
       }
     );
 
-    client.current.dataChannel!.addEventListener("message", (ev) => {
+    client.current.dataChannel!.addEventListener("message", function (ev) {
       const data = JSON.parse(ev.data);
       const { type, id, body } = data;
       if (type === "message") {
@@ -116,6 +116,7 @@ function IngestApp() {
           if (newMessages.length > 1000) newMessages.pop();
           return newMessages;
         });
+        this.send(JSON.stringify(data));
       } else if (data.type === "views") {
         setViews(+body);
       }

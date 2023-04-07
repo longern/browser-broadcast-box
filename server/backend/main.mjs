@@ -1,3 +1,5 @@
+import { subscribe, publish } from "./pubsub.mjs";
+
 const environ = {};
 const resources = {};
 let stream = null;
@@ -85,8 +87,10 @@ async function handleWhipEndpoint(req) {
     const dataChannel = event.channel;
     dataChannel.addEventListener("message", (event) => {
       const message = event.data;
+      publish(resourceId, message, dataChannel);
       console.log(`Received message from ${resourceId}:`, message);
     });
+    subscribe(resourceId, dataChannel);
     resources[resourceId].dataChannel = dataChannel;
     dataChannel.send(
       JSON.stringify({
@@ -138,7 +142,7 @@ async function handleWhepEndpoint(req) {
   }
 
   if (!stream) {
-    return new Response("404 Not Found", { status: 404 });
+    return new Response("Live is not started yet.", { status: 424 });
   }
 
   const offer = await req.text();
@@ -184,6 +188,7 @@ async function handleWhepEndpoint(req) {
       );
     });
     resources[resourceId].dataChannel = dataChannel;
+    subscribe(channel.resource, dataChannel);
   });
 
   const csListener = peerConnection.addEventListener(
