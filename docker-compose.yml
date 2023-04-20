@@ -9,8 +9,8 @@ services:
     environment:
       - WEBSOCKET_WHITELIST=172.20.0.3
   chrome:
-    image: zenika/alpine-chrome:108
-    command: chromium-browser --headless --no-sandbox --remote-debugging-port=0 http://backend:11733/backend/?s=backend:11733
+    image: zenika/alpine-chrome:112
+    command: --no-sandbox --remote-debugging-port=0 http://backend:11733/backend/?s=backend:11733
     networks:
       default:
         ipv4_address: 172.20.0.3
