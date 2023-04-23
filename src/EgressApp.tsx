@@ -127,6 +127,8 @@ function EgressDesktop({
   messages: Message[];
   handleChatInput: (e: React.KeyboardEvent<HTMLInputElement>) => void;
 }) {
+  const chatInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <Stack direction="column" sx={{ height: "100%" }}>
       <AppBar position="static">
@@ -154,6 +156,7 @@ function EgressDesktop({
         >
           <Messages messages={messages}></Messages>
           <TextField
+            ref={chatInputRef}
             id="chat-input"
             aria-label="chat input"
             variant="outlined"
@@ -163,7 +166,15 @@ function EgressDesktop({
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
-                  <IconButton aria-label="send" edge="end">
+                  <IconButton
+                    aria-label="send"
+                    edge="end"
+                    onClick={() => {
+                      chatInputRef.current!.dispatchEvent(
+                        new KeyboardEvent("keydown", { key: "Enter" })
+                      );
+                    }}
+                  >
                     <Send />
                   </IconButton>
                 </InputAdornment>
