@@ -36,8 +36,24 @@ deno task dev
 
 Open http://localhost:11733/backend/ in browser. This page will
 connect to deno process and handle stream forwarding.
+During deployment, this page will be opened with headless chromium on the server.
 
 Open http://localhost:11733/ to browse the client.
+
+### Environment variables
+
+You can set environment variables in `.env` or `.env.local` file.
+
+- `BEARER_TOKEN`: Required. Secret token.
+- `PUBLIC_IP`: Public IP of the server. If not set, it will be detected
+  automatically on AWS Fargate and Alibaba Cloud ECI.
+
+### Stream with OBS
+
+Make sure `BEARER_TOKEN` is set.
+On the client page, click the LIVE button, select the service as My Channel,
+fill in the BEARER_TOKEN, and click the CREATE button.
+Then you will get a link. Copy the link and paste it to OBS.
 
 ### Deployments
 

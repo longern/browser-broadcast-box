@@ -311,7 +311,11 @@ export default function IngestForm({
         headers: { Authorization: `Bearer ${authToken}` },
       });
       const live_input_body = await live_input_response.json();
-      setLiveUrl(live_input_body.result.webRTC.url);
+      const liveUrl = new URL(
+        live_input_body.result.webRTC.url,
+        window.location.href
+      );
+      setLiveUrl(liveUrl.toString());
       return;
     }
     const live_input_body = await response.json();
@@ -319,7 +323,11 @@ export default function IngestForm({
       window.alert(live_input_body.messages[0].message);
       return;
     }
-    setLiveUrl(live_input_body.result.webRTC.url);
+    const liveUrl = new URL(
+      live_input_body.result.webRTC.url,
+      window.location.href
+    );
+    setLiveUrl(liveUrl.toString());
   }
 
   async function deleteLiveInput() {
